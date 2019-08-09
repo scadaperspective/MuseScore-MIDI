@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="3.01">
+  <Score>
+    <LayerTag id="0" tag="default"></LayerTag>
+    <currentLayer>0</currentLayer>
+    <Division>480</Division>
+    <Style>
+      <lyricsOddFontSize>10</lyricsOddFontSize>
+      <lyricsOddOffset x="0" y="6"/>
+      <lyricsEvenFontSize>10</lyricsEvenFontSize>
+      <lyricsEvenOffset x="0" y="6"/>
+      <pedalFontSize>10</pedalFontSize>
+      <ottavaFontSize>10</ottavaFontSize>
+      <ottavaFontItalic>1</ottavaFontItalic>
+      <defaultAlign>center,center</defaultAlign>
+      <defaultFramePadding>0</defaultFramePadding>
+      <defaultFrameWidth>0</defaultFrameWidth>
+      <defaultOffset x="0" y="8"/>
+      <titleFontFace>Times New Roman</titleFontFace>
+      <titleFontSize>36</titleFontSize>
+      <titleFontSpatiumDependent>1</titleFontSpatiumDependent>
+      <subTitleFontFace>Times New Roman</subTitleFontFace>
+      <subTitleFontSize>24</subTitleFontSize>
+      <subTitleFontSpatiumDependent>1</subTitleFontSpatiumDependent>
+      <composerFontFace>Times New Roman</composerFontFace>
+      <composerFontSize>14</composerFontSize>
+      <composerFontSpatiumDependent>1</composerFontSpatiumDependent>
+      <lyricistFontFace>Times New Roman</lyricistFontFace>
+      <lyricistFontSize>14</lyricistFontSize>
+      <longInstrumentFontFace>Times New Roman</longInstrumentFontFace>
+      <longInstrumentFontSize>9</longInstrumentFontSize>
+      <shortInstrumentFontFace>Times New Roman</shortInstrumentFontFace>
+      <shortInstrumentFontSize>9</shortInstrumentFontSize>
+      <dynamicsFontSize>11</dynamicsFontSize>
+      <dynamicsFontItalic>0</dynamicsFontItalic>
+      <tempoFontFace>Times New Roman</tempoFontFace>
+      <tempoFontSize>10</tempoFontSize>
+      <tempoFontItalic>1</tempoFontItalic>
+      <tempoPosAbove>-4</tempoPosAbove>
+      <measureNumberOffset x="-1.2" y="-2"/>
+      <measureNumberAlign>center,bottom</measureNumberAlign>
+      <instrumentChangeFontFace>Times New Roman</instrumentChangeFontFace>
+      <instrumentChangeFontSize>10</instrumentChangeFontSize>
+      <instrumentChangeAlign>left,bottom</instrumentChangeAlign>
+      <Spatium>1.76389</Spatium>
+      </Style>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <metaTag name="arranger"></metaTag>
+    <metaTag name="composer"></metaTag>
+    <metaTag name="copyright"></metaTag>
+    <metaTag name="lyricist"></metaTag>
+    <metaTag name="movementNumber"></metaTag>
+    <metaTag name="movementTitle"></metaTag>
+    <metaTag name="poet"></metaTag>
+    <metaTag name="source"></metaTag>
+    <metaTag name="translator"></metaTag>
+    <metaTag name="workNumber"></metaTag>
+    <metaTag name="workTitle"></metaTag>
+    <Part>
+      <Staff id="1">
+        <StaffType group="pitched">
+          <name>stdNormal</name>
+          </StaffType>
+        </Staff>
+      <trackName>Flûte</trackName>
+      <Instrument>
+        <longName>Flûte</longName>
+        <shortName>Fl.</shortName>
+        <trackName>Flûte</trackName>
+        <minPitchP>59</minPitchP>
+        <maxPitchP>98</maxPitchP>
+        <minPitchA>60</minPitchA>
+        <maxPitchA>93</maxPitchA>
+        <instrumentId>wind.flutes.flute</instrumentId>
+        <Articulation>
+          <velocity>100</velocity>
+          <gateTime>95</gateTime>
+          </Articulation>
+        <Articulation name="staccatissimo">
+          <velocity>100</velocity>
+          <gateTime>33</gateTime>
+          </Articulation>
+        <Articulation name="staccato">
+          <velocity>100</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="portato">
+          <velocity>100</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="tenuto">
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="marcato">
+          <velocity>120</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="sforzato">
+          <velocity>120</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Channel>
+          <program value="73"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <VBox>
+        <height>10</height>
+        <Text>
+          <style>Title</style>
+          <text>Repeat Test</text>
+          </Text>
+        </VBox>
+      <Measure>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <Measure>
+        <Marker>
+          <style>Repeat Text Left</style>
+          <text><sym>segno</sym></text>
+          <label>segno</label>
+          </Marker>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <Measure>
+        <startRepeat/>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <Measure>
+        <Jump>
+          <style>Repeat Text Right</style>
+          <text>D.S.</text>
+          <jumpTo>segno</jumpTo>
+          <playUntil>end</playUntil>
+          <continueAt></continueAt>
+          </Jump>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <BarLine>
+            <subtype>double</subtype>
+            <span>1</span>
+            </BarLine>
+          </voice>
+        </Measure>
+      <Measure>
+        <endRepeat>2</endRepeat>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note>
+              <pitch>71</pitch>
+              <tpc>19</tpc>
+              </Note>
+            </Chord>
+          <BarLine>
+            <subtype>end</subtype>
+            <span>1</span>
+            </BarLine>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>
