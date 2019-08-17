@@ -56,8 +56,6 @@ void TDuration::setDots(int v)
       {
       if (v > MAX_DOTS)
             v = MAX_DOTS;
-      if (v < 0)
-            v = 0;
       _dots = v;
       }
 

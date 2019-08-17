@@ -2880,11 +2880,6 @@ Element* Note::prevInEl(Element* e)
       return *(i-1);
       }
 
-static bool tieValid(Tie* tie)
-      {
-      return (tie && !tie->segmentsEmpty());
-      }
-
 //---------------------------------------------------------
 //   nextElement
 //---------------------------------------------------------
@@ -2903,7 +2898,7 @@ Element* Note::nextElement()
                   Element* next = nextInEl(e); // return next element in _el
                   if (next)
                         return next;
-                  else if (tieValid(_tieFor))
+                  else if (_tieFor)
                         return _tieFor->frontSegment();
                   else if (!_spannerFor.empty()) {
                         for (auto i : _spannerFor) {
@@ -2929,7 +2924,7 @@ Element* Note::nextElement()
             case ElementType::ACCIDENTAL:
                   if (!_el.empty())
                         return _el[0];
-                  if (tieValid(_tieFor))
+                  if (_tieFor)
                         return _tieFor->frontSegment();
                   if (!_spannerFor.empty()) {
                         for (auto i : _spannerFor) {
@@ -2942,7 +2937,7 @@ Element* Note::nextElement()
             case ElementType::NOTE:
                   if (!_el.empty())
                         return _el[0];
-                  if (tieValid(_tieFor))
+                  if (_tieFor)
                         return _tieFor->frontSegment();
                   if (!_spannerFor.empty()) {
                         for (auto i : _spannerFor) {
@@ -2982,7 +2977,7 @@ Element* Note::prevElement()
                         return _el.back();
                   return this;
             case ElementType::GLISSANDO_SEGMENT:
-                  if (tieValid(_tieFor))
+                  if (_tieFor)
                         return _tieFor->frontSegment();
                   else if (!_el.empty())
                         return _el.back();
@@ -3006,7 +3001,7 @@ Element* Note::lastElementBeforeSegment()
                         return i->spannerSegments().front();
                   }
             }
-      if (tieValid(_tieFor))
+      if (_tieFor)
             return _tieFor->frontSegment();
       if (!_el.empty())
             return _el.back();

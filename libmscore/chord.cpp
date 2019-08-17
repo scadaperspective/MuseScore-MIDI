@@ -516,7 +516,6 @@ void Chord::add(Element* e)
                   if (voice() && measure() && note->visible())
                         measure()->setHasVoices(staffIdx(), true);
                   }
-                  score()->setPlaylistDirty();
                   break;
             case ElementType::ARPEGGIO:
                   _arpeggio = toArpeggio(e);
@@ -598,7 +597,6 @@ void Chord::remove(Element* e)
                         qDebug("Chord::remove() note %p not found!", e);
                   if (voice() && measure() && note->visible())
                         measure()->checkMultiVoices(staffIdx());
-                  score()->setPlaylistDirty();
                   }
                   break;
 
@@ -3218,12 +3216,6 @@ QString Chord::accessibleExtraInfo() const
                   rez = QString("%1 %2").arg(rez).arg(n->screenReaderInfo());
             }
 
-      for (Articulation* a : articulations()) {
-            if (!score()->selectionFilter().canSelect(a))
-                  continue;
-            rez = QString("%1 %2").arg(rez).arg(a->screenReaderInfo());
-            }
-
       if (arpeggio() && score()->selectionFilter().canSelect(arpeggio()))
             rez = QString("%1 %2").arg(rez).arg(arpeggio()->screenReaderInfo());
 
@@ -3548,40 +3540,6 @@ void Chord::layoutArticulations3(Slur* slur)
                         sstaff->skyline().add(aShape);
                   }
             }
-      }
-
-//---------------------------------------------------------
-//   getNoteEventLists
-//    Get contents of all NoteEventLists for all notes in
-//    the chord.
-//---------------------------------------------------------
-
-QList<NoteEventList> Chord::getNoteEventLists()
-      {
-      QList<NoteEventList> ell;
-      if (notes().empty())
-            return ell;
-      for (size_t i = 0; i < notes().size(); ++i) {
-            ell.append(NoteEventList(notes()[i]->playEvents()));
-            }
-      return ell;
-      }
-
-   //---------------------------------------------------------
-   //   setNoteEventLists
-   //    Set contents of all NoteEventLists for all notes in
-   //    the chord.
-   //---------------------------------------------------------
-
-void Chord::setNoteEventLists(QList<NoteEventList>& ell)
-      {
-      if (notes().empty())
-            return;
-      Q_ASSERT(ell.size() == notes().size());
-      for (size_t i = 0; i < ell.size(); i++) {
-            notes()[i]->setPlayEvents(ell[int(i)]);
-            }
-
       }
 
 }

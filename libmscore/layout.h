@@ -54,6 +54,9 @@ struct LayoutContext {
       ~LayoutContext();
 
       void layoutLinear();
+#if 0 // unused
+      void layoutMeasureLinear(MeasureBase*);
+#endif
 
       void layout();
       int adjustMeasureNo(MeasureBase*);

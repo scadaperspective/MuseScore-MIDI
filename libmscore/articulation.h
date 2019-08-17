@@ -139,7 +139,6 @@ class Articulation final : public Element {
       bool isAccent() const;
       bool isMarcato() const;
       bool isLuteFingering() const;
-      bool isOrnament() const;
 
       void doAutoplace();
       };

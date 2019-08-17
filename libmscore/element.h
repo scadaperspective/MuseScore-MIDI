@@ -30,10 +30,12 @@ namespace Ms {
 #define VOICES 4
 #endif
 
+class ConnectorInfoReader;
 class XmlReader;
 class XmlWriter;
 enum class SymId;
 enum class Pid;
+enum class OffsetType : char;
 class StaffType;
 
 //---------------------------------------------------------
@@ -331,6 +333,7 @@ class Element : public ScoreElement {
       //@ Returns the human-readable name of the element type
       //@ Returns the name of the element type
       virtual Q_INVOKABLE QString _name() const { return QString(name()); }
+      void dumpQPointF(const char*) const;
 
       virtual QColor color() const             { return _color; }
       QColor curColor() const;
@@ -381,6 +384,12 @@ class Element : public ScoreElement {
 
       bool isPrintable() const;
       qreal point(const Spatium sp) const { return sp.val() * spatium(); }
+
+      //
+      // check element for consistency; return false if element
+      // is not valid
+      //
+      virtual bool check() const { return true; }
 
       static Ms::Element* create(Ms::ElementType type, Score*);
       static Element* name2Element(const QStringRef&, Score*);

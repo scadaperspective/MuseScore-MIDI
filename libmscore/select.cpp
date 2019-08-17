@@ -71,8 +71,6 @@ Selection::Selection(Score* s)
       _staffStart    = 0;
       _staffEnd      = 0;
       _activeTrack   = 0;
-      _currentTick   = Fraction(-1, 1);
-      _currentTrack  = 0;
       }
 
 //---------------------------------------------------------
@@ -160,29 +158,6 @@ ChordRest* Selection::cr() const
       if (e->isChordRest())
             return toChordRest(e);
       return 0;
-      }
-
-//---------------------------------------------------------
-//   currentCR
-//---------------------------------------------------------
-
-ChordRest* Selection::currentCR() const
-      {
-      // no selection yet - start at very beginning, not first cr
-      if (_currentTick == Fraction(-1, 1))
-            return nullptr;
-      Segment* s = score()->tick2rightSegment(_currentTick);
-      if (!s)
-            return nullptr;
-      int track = _currentTrack;
-      // staff may have been removed - start at top
-      if (track < 0 || track >= score()->ntracks())
-            track = 0;
-      Element* e = s->element(track);
-      if (e && e->isChordRest())
-            return toChordRest(e);
-      else
-            return nullptr;
       }
 
 //---------------------------------------------------------
@@ -364,7 +339,6 @@ void Selection::add(Element* el)
 
 //---------------------------------------------------------
 //   canSelect
-//   see also `static const char* labels[]` in selectionwindow.cpp
 //---------------------------------------------------------
 
 bool SelectionFilter::canSelect(const Element* e) const
@@ -399,7 +373,7 @@ bool SelectionFilter::canSelect(const Element* e) const
           return isFiltered(SelectionFilterType::OTHER_TEXT);
       if (e->isSLine()) // NoteLine, Volta
           return isFiltered(SelectionFilterType::OTHER_LINE);
-      if (e->isTremolo())
+      if (e->isTremolo() && !toTremolo(e)->twoNotes())
           return isFiltered(SelectionFilterType::TREMOLO);
       if (e->isChord() && toChord(e)->isGrace())
           return isFiltered(SelectionFilterType::GRACE_NOTE);
@@ -672,13 +646,6 @@ void Selection::updateState()
             setState(SelState::NONE);
       else if (_state == SelState::NONE)
             setState(SelState::LIST);
-      if (e) {
-            if (e->isSpannerSegment())
-                  _currentTick = toSpannerSegment(e)->spanner()->tick();
-            else
-                  _currentTick = e->tick();
-            _currentTrack = e->track();
-            }
       if (!_score->noteEntryMode())
              _score->inputState().update(e);
       }

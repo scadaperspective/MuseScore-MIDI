@@ -3759,6 +3759,7 @@ void Score::cmd(const QAction* a, EditData& ed)
             { "relayout",                   [this]{ cmdRelayout();                                              }},
             { "toggle-autoplace",           [this]{ cmdToggleAutoplace(false);                                  }},
             { "autoplace-enabled",          [this]{ cmdToggleAutoplace(true);                                   }},
+            { "",                           [this]{                                                             }},
             };
 
       for (const auto& c : cmdList) {

@@ -79,10 +79,12 @@ namespace Ms {
 MasterScore* gscore;                 ///< system score, used for palettes etc.
 std::set<Score*> Score::validScores;
 
+bool scriptDebug     = false;
 bool noSeq           = false;
 bool noMidi          = false;
 bool midiInputTrace  = false;
 bool midiOutputTrace = false;
+bool showRubberBand  = true;
 
 //---------------------------------------------------------
 //   MeasureBaseList
@@ -425,6 +427,9 @@ void Score::fixTicks()
 
       for (Staff* staff : _staves)
             staff->clearTimeSig();
+
+      Fraction sig(fm->ticks());
+      Fraction nomSig(fm->timesig());
 
       if (isMaster()) {
             tempomap()->clear();

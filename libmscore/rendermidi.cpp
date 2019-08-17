@@ -939,7 +939,6 @@ static void collectMeasureEventsDefault(EventMap* events, Measure* m, Staff* sta
                               int staticTick = seg->tick().ticks();
                               changeCCBetween(renderData.tempPlayEvents, staticTick, staticTick, exprVal, exprVal, channel, controller, defaultChangeMethod, tickOffset, staffIdx);
                               }
-                        velocity = velocityStart; // update the velocity value that will be used in note events
                         } // if instr->singleNoteDynamics()
                   else {
                         if (chord != 0) {
@@ -2162,16 +2161,14 @@ void renderChordArticulation(Chord* chord, QList<NoteEventList> & ell, int & gat
 
 static bool shouldRenderNote(Note* n)
       {
+      int dist = 0;
       while (n->tieBack()) {
             n = n->tieBack()->startNote();
-            if (findFirstTrill(n->chord()))
+            ++dist;
+            if (n && n->playEvents().offtime() > (dist * NoteEvent::NOTE_LENGTH)) {
                   // The previous tied note probably has events for this note too.
                   // That is, we don't need to render this note separately.
                   return false;
-            for (Articulation* a : n->chord()->articulations()) {
-                  if (a->isOrnament()) {
-                        return false;
-                        }
                   }
             }
       return true;
@@ -2305,8 +2302,12 @@ void Score::createGraceNotesPlayEvents(const Fraction& tick, Chord* chord, int& 
                   el.append(nel);
                   }
 
-            if (gc->playEventType() == PlayEventType::Auto)
-                  gc->setNoteEventLists(el);
+            if (gc->playEventType() == PlayEventType::InvalidUser)
+                  gc->score()->undo(new ChangeEventList(gc, el));
+            else if (gc->playEventType() == PlayEventType::Auto) {
+                  for (int ii = 0; ii < int(nn); ++ii)
+                        gc->notes()[ii]->setPlayEvents(el[ii]);
+                  }
             on += graceDuration;
             }
       if (na) {
@@ -2328,8 +2329,12 @@ void Score::createGraceNotesPlayEvents(const Fraction& tick, Chord* chord, int& 
                         el.append(nel);
                         }
 
-                  if (gc->playEventType() == PlayEventType::Auto)
-                        gc->setNoteEventLists(el);
+                  if (gc->playEventType() == PlayEventType::InvalidUser)
+                        gc->score()->undo(new ChangeEventList(gc, el));
+                  else if (gc->playEventType() == PlayEventType::Auto) {
+                        for (int ii = 0; ii < int(nn); ++ii)
+                              gc->notes()[ii]->setPlayEvents(el[ii]);
+                        }
                   on += graceDuration1;
                   }
             }
@@ -2376,9 +2381,15 @@ void Score::createPlayEvents(Chord* chord)
       //    render normal (and articulated) chords
       //
       QList<NoteEventList> el = renderChord(chord, gateTime, ontime, trailtime);
-      if (chord->playEventType() == PlayEventType::Auto)
-            chord->setNoteEventLists(el);
-      // don't change event list if type is PlayEventType::User
+      if (chord->playEventType() == PlayEventType::InvalidUser) {
+            chord->score()->undo(new ChangeEventList(chord, el));
+            }
+      else if (chord->playEventType() == PlayEventType::Auto) {
+            int n = int(chord->notes().size());
+            for (int i = 0; i < n; ++i)
+                  chord->notes()[i]->setPlayEvents(el[i]);
+            }
+      // don’t change event list if type is PlayEventType::User
       }
 
 void Score::createPlayEvents(Measure* start, Measure* end)

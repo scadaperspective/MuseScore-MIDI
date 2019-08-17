@@ -25,6 +25,10 @@
 
 namespace Ms {
 
+// metrics for dashes and melisma; all in sp. units:
+static constexpr qreal  LYRICS_DASH_Y_POS_RATIO             = 0.67;     // the fraction of lyrics font x-height to
+                                                                        //    raise the dashes above text base line;
+
 //---------------------------------------------------------
 //   searchNextLyrics
 //---------------------------------------------------------

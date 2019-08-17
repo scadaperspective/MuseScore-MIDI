@@ -186,11 +186,11 @@ QPainterPath Tremolo::basePath() const
       qreal lw  = _spatium * score()->styleS(Sid::tremoloStrokeWidth).val();
       qreal td  = _spatium * score()->styleS(Sid::tremoloDistance).val();
 
-      QPainterPath ppath;
+      QPainterPath path;
       qreal ty  = 0.0;
 
       for (int i = 0; i < _lines; i++) {
-            ppath.addRect(-w2, ty, 2.0 * w2, lw);
+            path.addRect(-w2, ty, 2.0 * w2, lw);
             ty += td;
             }
 
@@ -198,15 +198,15 @@ QPainterPath Tremolo::basePath() const
             // just for the palette
             QTransform shearTransform;
             shearTransform.shear(0.0, -(lw / 2.0) / w2);
-            ppath = shearTransform.map(ppath);
+            path = shearTransform.map(path);
             }
       else if (!twoNotes()) {
             QTransform shearTransform;
             shearTransform.shear(0.0, -(lw / 2.0) / w2);
-            ppath = shearTransform.map(ppath);
+            path = shearTransform.map(path);
             }
 
-      return ppath;
+      return path;
       }
 
 //---------------------------------------------------------

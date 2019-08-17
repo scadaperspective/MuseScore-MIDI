@@ -1477,7 +1477,6 @@ void Score::cmdFlip()
                || e->isJump()
                || e->isMarker()
                || e->isStaffText()
-               || e->isSticking()
                || e->isFingering()
                || e->isDynamic()
                || e->isHarmony()
@@ -2296,8 +2295,6 @@ void Score::cmdDeleteSelection()
                         links = *e->links();
 
                   // find location of element to select after deleting notes
-                  // get tick of element itself if that is valid
-                  // or of spanner or parent if that is more valid
                   Fraction tick  = { -1, 1 };
                   int track = -1;
                   if (!cr) {
@@ -2308,7 +2305,7 @@ void Score::cmdDeleteSelection()
                         else if (e->isSpannerSegment())
                               tick = toSpannerSegment(e)->spanner()->tick();
                         else if (e->parent()
-                           && (e->parent()->isSegment() || e->parent()->isChord() || e->parent()->isNote() || e->parent()->isRest()))
+                           && (e->parent()->isSegment() || e->parent()->isChord()))
                               tick = e->parent()->tick();
                         //else tick < 0
                         track = e->track();
@@ -4265,7 +4262,6 @@ void Score::undoAddElement(Element* element)
          && et != ElementType::DYNAMIC
          && et != ElementType::STAFF_TEXT
          && et != ElementType::SYSTEM_TEXT
-         && et != ElementType::STICKING
          && et != ElementType::TREMOLO
          && et != ElementType::ARPEGGIO
          && et != ElementType::SYMBOL
@@ -4297,7 +4293,6 @@ void Score::undoAddElement(Element* element)
                 || element->isTremoloBar()
                 || element->isDynamic()
                 || element->isStaffText()
-                || element->isSticking()
                 || element->isFretDiagram()
                 || element->isHarmony()
                 || element->isHairpin()
@@ -4410,7 +4405,6 @@ void Score::undoAddElement(Element* element)
                      || element->isTremoloBar()
                      || element->isDynamic()
                      || element->isStaffText()
-                     || element->isSticking()
                      || element->isFretDiagram()
                      || element->isFermata()
                      || element->isHarmony()) {
@@ -4426,7 +4420,7 @@ void Score::undoAddElement(Element* element)
                         // make harmony child of fret diagram if possible
                         if (ne->isHarmony()) {
                               for (Element* segel : segment->annotations()) {
-                                    if (segel && segel->isFretDiagram() && segel->track() == ntrack) {
+                                    if (segel->isFretDiagram()) {
                                           ne->setTrack(segel->track());
                                           ne->setParent(segel);
                                           break;

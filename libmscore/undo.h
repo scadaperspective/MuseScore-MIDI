@@ -37,7 +37,6 @@
 #include "stafftype.h"
 #include "cleflist.h"
 #include "note.h"
-#include "chord.h"
 #include "drumset.h"
 #include "rest.h"
 #include "fret.h"
@@ -900,39 +899,6 @@ class ChangeNoteEvents : public UndoCommand {
       };
 
 //---------------------------------------------------------
-//   ChangeNoteEventList
-//---------------------------------------------------------
-
-class ChangeNoteEventList : public UndoCommand {
-      Ms::Note*      note;
-      NoteEventList  newEvents;
-      PlayEventType  newPetype;
-
-      void flip(EditData*) override;
-
-   public:
-      ChangeNoteEventList(Ms::Note* n, NoteEventList& ne) :
-         note(n), newEvents(ne), newPetype(PlayEventType::User) {}
-      UNDO_NAME("ChangeNoteEventList")
-      };
-
-//---------------------------------------------------------
-//   ChangeChordPlayEventType
-//---------------------------------------------------------
-
-class ChangeChordPlayEventType : public UndoCommand {
-      Ms::Chord* chord;
-      Ms::PlayEventType petype;
-      QList<NoteEventList> events;
-
-      void flip(EditData*) override;
-
-   public:
-      ChangeChordPlayEventType(Chord* c, Ms::PlayEventType pet) : chord(c), petype(pet) { events = c->getNoteEventLists(); }
-      UNDO_NAME("ChangeChordPlayEventType")
-      };
-
-//---------------------------------------------------------
 //   ChangeInstrument
 //    change instrument in an InstrumentChange element
 //---------------------------------------------------------
@@ -1224,13 +1190,12 @@ class ChangeNoteEvent : public UndoCommand {
       Note* note;
       NoteEvent* oldEvent;
       NoteEvent newEvent;
-      PlayEventType  newPetype;
 
       void flip(EditData*) override;
 
    public:
       ChangeNoteEvent(Note* n, NoteEvent* oe, const NoteEvent& ne)
-         : note(n), oldEvent(oe), newEvent(ne), newPetype(PlayEventType::User) {}
+         : note(n), oldEvent(oe), newEvent(ne) {}
       UNDO_NAME("ChangeNoteEvent")
       };
 

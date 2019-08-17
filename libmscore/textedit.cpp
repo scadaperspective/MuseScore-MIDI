@@ -344,15 +344,15 @@ bool TextBase::edit(EditData& ed)
                                     }
                               break;
                         case Qt::Key_B:
-                              s = "\u266d"; // Unicode flat
-                              break;
+                              insertSym(ed, SymId::accidentalFlat);
+                              return true;
                         case Qt::Key_NumberSign:
-                              s = "\u266f"; // Unicode sharp
-                              break;
+                              insertSym(ed, SymId::accidentalSharp);
+                              return true;
                         case Qt::Key_H:
-                              s = "\u266e"; // Unicode natural
-                              break;
-                         case Qt::Key_Space:
+                              insertSym(ed, SymId::accidentalNatural);
+                              return true;
+                        case Qt::Key_Space:
                               insertSym(ed, SymId::space);
                               return true;
                         case Qt::Key_F:
