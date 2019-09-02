@@ -584,6 +584,7 @@ void Segment::add(Element* el)
 //                  ChordRest* cr = toChordRest(el);
 //                  if (cr->tuplet() && !cr->tuplet()->elements().empty() && cr->tuplet()->elements().front() == cr && cr->tuplet()->tick() < 0)
 //                        cr->tuplet()->setTick(cr->tick());
+                  score()->setPlaylistDirty();
                   }
                   // fall through
 
@@ -639,6 +640,7 @@ void Segment::remove(Element* el)
                         if (start != s->startElement() || end != s->endElement())
                               score()->undo(new ChangeStartEndSpanner(s, start, end));
                         }
+                  score()->setPlaylistDirty();
                   }
                   break;
 
@@ -1489,6 +1491,7 @@ Element* Segment::nextElement(int activeStaff)
             case ElementType::DYNAMIC:
             case ElementType::HARMONY:
             case ElementType::SYMBOL:
+            case ElementType::FERMATA:
             case ElementType::FRET_DIAGRAM:
             case ElementType::TEMPO_TEXT:
             case ElementType::STAFF_TEXT:
@@ -1546,12 +1549,11 @@ Element* Segment::nextElement(int activeStaff)
                         Spanner* sp = s->spanner();
                         p = sp->startElement();
                         }
-                  else if (e->type() == ElementType::ACCIDENTAL ||
-                           e->type() == ElementType::ARTICULATION) {
-                        p = e->parent();
-                        }
                   else {
                         p = e;
+                        Element* pp = p->parent();
+                        if (pp->isNote() || pp->isRest() || (pp->isChord() && !p->isNote()))
+                              p = pp;
                         }
                   Element* el = p;
                   for (; p && p->type() != ElementType::SEGMENT; p = p->parent()) {
@@ -1596,6 +1598,7 @@ Element* Segment::prevElement(int activeStaff)
             case ElementType::DYNAMIC:
             case ElementType::HARMONY:
             case ElementType::SYMBOL:
+            case ElementType::FERMATA:
             case ElementType::FRET_DIAGRAM:
             case ElementType::TEMPO_TEXT:
             case ElementType::STAFF_TEXT:
@@ -1667,9 +1670,10 @@ Element* Segment::prevElement(int activeStaff)
                         el = sp->startElement();
                         seg = sp->startSegment();
                         }
-                  else if (e->type() == ElementType::ACCIDENTAL ||
-                           e->type() == ElementType::ARTICULATION) {
-                        el = e->parent();
+                  else {
+                        Element* ep = e->parent();
+                        if (ep->isNote() || ep->isRest() || (ep->isChord() && !e->isNote()))
+                              el = e->parent();
                         }
 
                  Element* prev = seg->prevElementOfSegment(seg, el, activeStaff);
@@ -1832,7 +1836,7 @@ QString Segment::accessibleExtraInfo() const
                   }
 
             if (s->tick() == tick())
-                  startSpanners += QObject::tr("Start of ") + s->accessibleInfo();
+                  startSpanners += QObject::tr("Start of %1").arg(s->accessibleInfo());
 
             const Segment* seg = 0;
             switch (s->type()) {
@@ -1846,7 +1850,7 @@ QString Segment::accessibleExtraInfo() const
                   }
 
             if (seg && s->tick2() == seg->tick())
-                  endSpanners += QObject::tr("End of ") + s->accessibleInfo();
+                  endSpanners += QObject::tr("End of %1").arg(s->accessibleInfo());
             }
       return rez + " " + startSpanners + " " + endSpanners;
       }
@@ -2086,6 +2090,14 @@ qreal Segment::minHorizontalDistance(Segment* ns, bool systemHeaderGap) const
             // d = qMax(d, ns->minLeft());
             // d = qMax(d, spatium());       // minimum distance is one spatium
             // w = qMax(w, minRight()) + d;
+            }
+      else if (systemHeaderGap) {
+            // first segment after header is *not* a chordrest
+            // could be a clef
+            if (st == SegmentType::TimeSig)
+                  w += score()->styleP(Sid::systemHeaderTimeSigDistance);
+            else
+                  w += score()->styleP(Sid::systemHeaderDistance);
             }
       else if (st & (SegmentType::Clef | SegmentType::HeaderClef)) {
             if (nst == SegmentType::KeySig || nst == SegmentType::KeySigAnnounce)

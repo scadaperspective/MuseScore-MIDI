@@ -18,9 +18,11 @@
 #include "part.h"
 #include "util.h"
 #include "selection.h"
+#include "tie.h"
 
 #ifndef TESTROOT
 #include "shortcut.h"
+#include "musescore.h"
 #endif
 #include "libmscore/musescoreCore.h"
 #include "libmscore/score.h"
@@ -334,7 +336,7 @@ void PluginAPI::registerQmlTypes()
       if (-1 == qmlRegisterType<PluginAPI>  ("MuseScore", 3, 0, "MuseScore"))
             qWarning("qmlRegisterType failed: MuseScore");
 
-      qmlRegisterUncreatableType<Enum>("MuseScore", 3, 0, "Ms::PluginAPI::Enum", "Cannot create an enumeration");
+      qmlRegisterUncreatableType<Enum>("MuseScore", 3, 0, "MuseScoreEnum", "Cannot create an enumeration");
 
 //             qmlRegisterType<MScore>     ("MuseScore", 3, 0, "MScore");
       qmlRegisterType<ScoreView>("MuseScore", 3, 0, "ScoreView");
@@ -350,6 +352,7 @@ void PluginAPI::registerQmlTypes()
       qmlRegisterType<Part>();
       qmlRegisterType<Excerpt>();
       qmlRegisterType<Selection>();
+      qmlRegisterType<Tie>();
       qmlRegisterType<PlayEvent>("MuseScore", 3, 0, "PlayEvent");
       //qmlRegisterType<Hook>();
       //qmlRegisterType<Stem>();

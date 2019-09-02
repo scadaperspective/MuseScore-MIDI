@@ -96,6 +96,7 @@ set (SOURCE_LIB
       ${PROJECT_SOURCE_DIR}/mscore/importxmlfirstpass.cpp
       ${PROJECT_SOURCE_DIR}/mscore/musicxmlfonthandler.cpp
       ${PROJECT_SOURCE_DIR}/mscore/musicxmlsupport.cpp
+      ${PROJECT_SOURCE_DIR}/mscore/qml/msqmlengine.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/qmlplugin.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/qmlpluginengine.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/api/enums.cpp
@@ -109,6 +110,7 @@ set (SOURCE_LIB
       ${PROJECT_SOURCE_DIR}/mscore/plugin/api/excerpt.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/api/util.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/api/selection.cpp
+      ${PROJECT_SOURCE_DIR}/mscore/plugin/api/tie.cpp
       ${PROJECT_SOURCE_DIR}/mscore/plugin/api/playevent.cpp
       ${PROJECT_SOURCE_DIR}/mscore/preferences.cpp
       ${PROJECT_SOURCE_DIR}/mscore/shortcut.cpp

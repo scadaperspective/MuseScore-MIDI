@@ -457,7 +457,7 @@ InspectorStaffTypeChange::InspectorStaffTypeChange(QWidget* parent)
             { Pid::LINE_DISTANCE,          0, sl.lineDistance,    sl.resetLineDistance    },
             { Pid::STAFF_SHOW_BARLINES,    0, sl.showBarlines,    sl.resetShowBarlines    },
             { Pid::STAFF_SHOW_LEDGERLINES, 0, sl.showLedgerlines, sl.resetShowLedgerlines },
-            { Pid::STAFF_SLASH_STYLE,      0, sl.slashStyle,      sl.resetSlashStyle      },
+            { Pid::STAFF_STEMLESS,         0, sl.stemless,        sl.resetStemless        },
             { Pid::STAFF_NOTEHEAD_SCHEME,  0, sl.noteheadScheme,  sl.resetNoteheadScheme  },
             { Pid::STAFF_GEN_CLEF,         0, sl.genClefs,        sl.resetGenClefs        },
             { Pid::STAFF_GEN_TIMESIG,      0, sl.genTimesig,      sl.resetGenTimesig      },
@@ -797,11 +797,23 @@ InspectorKeySig::InspectorKeySig(QWidget* parent)
             { Pid::LEADING_SPACE,  1, s.leadingSpace,  s.resetLeadingSpace  },
             { Pid::SHOW_COURTESY,  0, k.showCourtesy,  k.resetShowCourtesy  },
 //          { Pid::SHOW_NATURALS,  0, k.showNaturals,  k.resetShowNaturals  }
+            { Pid::KEYSIG_MODE,    0, k.keysigMode,    k.resetKeysigMode    }
             };
       const std::vector<InspectorPanel> ppList = {
             { s.title, s.panel },
             { k.title, k.panel }
             };
+      k.keysigMode->clear();
+      k.keysigMode->addItem(tr("Unknown"),    int(KeyMode::UNKNOWN));
+      k.keysigMode->addItem(tr("None"),       int(KeyMode::NONE));
+      k.keysigMode->addItem(tr("Major"),      int(KeyMode::MAJOR));
+      k.keysigMode->addItem(tr("Minor"),      int(KeyMode::MINOR));
+      k.keysigMode->addItem(tr("Dorian"),     int(KeyMode::DORIAN));
+      k.keysigMode->addItem(tr("Phrygian"),   int(KeyMode::PHRYGIAN));
+      k.keysigMode->addItem(tr("Lydian"),     int(KeyMode::LYDIAN));
+      k.keysigMode->addItem(tr("Mixolydian"), int(KeyMode::MIXOLYDIAN));
+      k.keysigMode->addItem(tr("Ionian"),     int(KeyMode::IONIAN));
+      k.keysigMode->addItem(tr("Locrian"),    int(KeyMode::LOCRIAN));
       mapSignals(iiList, ppList);
       }
 
@@ -809,8 +821,11 @@ void InspectorKeySig::setElement()
       {
       InspectorElementBase::setElement();
       KeySig* ks = toKeySig(inspector->element());
-      if (ks->generated())
+      if (ks->generated()) {
             k.showCourtesy->setEnabled(false);
+            k.keysigModeLabel->setEnabled(false);
+            k.keysigMode->setEnabled(false);
+            }
       }
 
 //---------------------------------------------------------

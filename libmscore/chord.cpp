@@ -516,6 +516,7 @@ void Chord::add(Element* e)
                   if (voice() && measure() && note->visible())
                         measure()->setHasVoices(staffIdx(), true);
                   }
+                  score()->setPlaylistDirty();
                   break;
             case ElementType::ARPEGGIO:
                   _arpeggio = toArpeggio(e);
@@ -597,6 +598,7 @@ void Chord::remove(Element* e)
                         qDebug("Chord::remove() note %p not found!", e);
                   if (voice() && measure() && note->visible())
                         measure()->checkMultiVoices(staffIdx());
+                  score()->setPlaylistDirty();
                   }
                   break;
 
@@ -858,14 +860,14 @@ void Chord::computeUp()
       // TAB STAVES
       if (tabStaff) {
             // if no stems or stem beside staves
-            if (tab->slashStyle() || !tab->stemThrough()) {
+            if (tab->stemless() || !tab->stemThrough()) {
                   // if measure has voices, set stem direction according to voice
                   if (measure()->hasVoices(staffIdx()))
                         _up = !(track() % 2);
                   else                          // if only voice 1,
                         // unconditionally set to down if not stems or according to TAB stem direction otherwise
                         // (even with no stems, stem direction controls position of slurs and ties)
-                        _up = tab->slashStyle() ? false : !tab->stemsDown();
+                        _up = tab->stemless() ? false : !tab->stemsDown();
                   return;
                   }
             // if TAB has stems through staves, chain into standard processing
@@ -1307,7 +1309,7 @@ qreal Chord::defaultStemLength() const
       const StaffType* tab = (st && st->isTabStaff(tick())) ? st->staffType(tick()) : nullptr;
       if (tab) {
             // require stems only if TAB is not stemless and this chord has a stem
-            if (!tab->slashStyle() && _stem) {
+            if (!tab->stemless() && _stem) {
                   // if stems are beside staff, apply special formatting
                   if (!tab->stemThrough()) {
                         // process stem:
@@ -1469,7 +1471,7 @@ void Chord::layoutStem1()
       {
       const Staff* stf = staff();
       const StaffType* st = stf ? stf->staffType(tick()) : 0;
-      if (durationType().hasStem() && !(_noStem || (measure() && measure()->slashStyle(staffIdx())) || (st && st->isTabStaff() && st->slashStyle()))) {
+      if (durationType().hasStem() && !(_noStem || (measure() && measure()->stemless(staffIdx())) || (st && st->isTabStaff() && st->stemless()))) {
             if (!_stem) {
                   Stem* stem = new Stem(score());
                   stem->setParent(this);
@@ -1513,7 +1515,7 @@ void Chord::layoutStem()
 
       int hookIdx  = durationType().hooks();
 
-      if (hookIdx && !(noStem() || measure()->slashStyle(staffIdx()))) {
+      if (hookIdx && !(noStem() || measure()->stemless(staffIdx()))) {
             if (!hook()) {
                   Hook* hook = new Hook(score());
                   hook->setParent(this);
@@ -1532,7 +1534,7 @@ void Chord::layoutStem()
       const StaffType* tab = st ? st->staffType(tick()) : 0;
       if (tab && tab->isTabStaff()) {
             // if stemless TAB
-            if (tab->slashStyle()) {
+            if (tab->stemless()) {
                   // if 'grid' duration symbol of MEDIALFINAL type, it is time to compute its width
                   if (_tabDur != nullptr && _tabDur->beamGrid() == TabBeamGrid::MEDIALFINAL)
                         _tabDur->layout2();
@@ -2210,7 +2212,7 @@ void Chord::layoutTablature()
       // or measure is stemless
       // or duration longer than half (if halves have stems) or duration longer than crochet
       // remove stems
-      if (tab->slashStyle() || _noStem || measure()->slashStyle(staffIdx()) || durationType().type() <
+      if (tab->stemless() || _noStem || measure()->stemless(staffIdx()) || durationType().type() <
          (tab->minimStyle() != TablatureMinimStyle::NONE ? TDuration::DurationType::V_HALF : TDuration::DurationType::V_QUARTER) ) {
             if (_stem)
                   score()->undo(new RemoveElement(_stem));
@@ -2261,8 +2263,6 @@ void Chord::layoutTablature()
             //
             // tab duration symbols
             //
-            // check duration of prev. CR segm
-            ChordRest * prevCR = prevChordRest(this);
             // if no previous CR
             // OR symbol repeat set to ALWAYS
             // OR symbol repeat condition is triggered
@@ -2272,23 +2272,33 @@ void Chord::layoutTablature()
             // AND no not-stem
             // set a duration symbol (trying to re-use existing symbols where existing to minimize
             // symbol creation and deletion)
-            TablatureSymbolRepeat symRepeat = tab->symRepeat();
-            if (  (prevCR == 0
-                  || symRepeat == TablatureSymbolRepeat::ALWAYS
-                  || (symRepeat == TablatureSymbolRepeat::MEASURE && measure() != prevCR->measure())
-                  || (symRepeat == TablatureSymbolRepeat::SYSTEM && measure()->system() != prevCR->measure()->system())
-                  || beamMode() != Beam::Mode::AUTO
-                  || prevCR->durationType().type() != durationType().type()
-                  || prevCR->dots() != dots()
-                  || prevCR->tuplet() != tuplet()
-                  || prevCR->type() == ElementType::REST)
-                        && !noStem() ) {
+            bool needTabDur = false;
+            bool repeat = false;
+            if (!noStem()) {
+                  // check duration of prev. CR segm
+                  ChordRest * prevCR = prevChordRest(this);
+                  if (prevCR == 0)
+                        needTabDur = true;
+                  else if (beamMode() != Beam::Mode::AUTO
+                        || prevCR->durationType().type() != durationType().type()
+                        || prevCR->dots() != dots()
+                        || prevCR->tuplet() != tuplet()
+                        || prevCR->type() == ElementType::REST)
+                        needTabDur = true;
+                  else if (tab->symRepeat() == TablatureSymbolRepeat::ALWAYS
+                        || measure() != prevCR->measure()) {
+                        needTabDur = true;
+                        repeat = true;
+                        }
+                  }
+            if (needTabDur) {
                   // symbol needed; if not exist, create; if exists, update duration
                   if (!_tabDur)
                         _tabDur = new TabDurationSymbol(score(), tab, durationType().type(), dots());
                   else
                         _tabDur->setDuration(durationType().type(), dots(), tab);
                   _tabDur->setParent(this);
+                  _tabDur->setRepeat(repeat);
 //                  _tabDur->setMag(mag());           // useless to set grace mag: graces have no dur. symbol
                   _tabDur->layout();
                   if (minY < 0) {                     // if some fret extends above tab body (like bass strings)
@@ -3216,6 +3226,12 @@ QString Chord::accessibleExtraInfo() const
                   rez = QString("%1 %2").arg(rez).arg(n->screenReaderInfo());
             }
 
+      for (Articulation* a : articulations()) {
+            if (!score()->selectionFilter().canSelect(a))
+                  continue;
+            rez = QString("%1 %2").arg(rez).arg(a->screenReaderInfo());
+            }
+
       if (arpeggio() && score()->selectionFilter().canSelect(arpeggio()))
             rez = QString("%1 %2").arg(rez).arg(arpeggio()->screenReaderInfo());
 
@@ -3540,6 +3556,40 @@ void Chord::layoutArticulations3(Slur* slur)
                         sstaff->skyline().add(aShape);
                   }
             }
+      }
+
+//---------------------------------------------------------
+//   getNoteEventLists
+//    Get contents of all NoteEventLists for all notes in
+//    the chord.
+//---------------------------------------------------------
+
+QList<NoteEventList> Chord::getNoteEventLists()
+      {
+      QList<NoteEventList> ell;
+      if (notes().empty())
+            return ell;
+      for (size_t i = 0; i < notes().size(); ++i) {
+            ell.append(NoteEventList(notes()[i]->playEvents()));
+            }
+      return ell;
+      }
+
+   //---------------------------------------------------------
+   //   setNoteEventLists
+   //    Set contents of all NoteEventLists for all notes in
+   //    the chord.
+   //---------------------------------------------------------
+
+void Chord::setNoteEventLists(QList<NoteEventList>& ell)
+      {
+      if (notes().empty())
+            return;
+      Q_ASSERT(ell.size() == int(notes().size()));
+      for (size_t i = 0; int(i) < ell.size(); i++) {
+            notes()[i]->setPlayEvents(ell[int(i)]);
+            }
+
       }
 
 }

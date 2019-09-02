@@ -60,6 +60,7 @@ private slots:
       void arpGliss3() { mxmlIoTest("testArpGliss3"); }
       void barStyles() { mxmlIoTest("testBarStyles"); }
       void barStyles2() { mxmlIoTest("testBarStyles2"); }
+      void barStyles3() { mxmlIoTest("testBarStyles3"); }
       void chordDiagrams1() { mxmlIoTest("testChordDiagrams1"); }
       void chordNoVoice() { mxmlIoTestRef("testChordNoVoice"); }
       void clefs1() { mxmlIoTest("testClefs1"); }
@@ -171,6 +172,8 @@ private slots:
       void tuplets3() { mxmlIoTestRef("testTuplets3"); }
       void tuplets4() { mxmlIoTest("testTuplets4"); }
       void tuplets5() { mxmlIoTestRef("testTuplets5"); }
+      void tuplets6() { mxmlIoTestRef("testTuplets6"); }
+      void tuplets7() { mxmlIoTest("testTuplets7"); }
       void uninitializedDivisions() { mxmlIoTestRef("testUninitializedDivisions"); }
       void unusualDurations() { mxmlIoTestRef("testUnusualDurations"); }
       void virtualInstruments() { mxmlIoTestRef("testVirtualInstruments"); }

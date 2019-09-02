@@ -52,6 +52,7 @@ if (SCRIPT_INTERFACE)
       set (SCRIPT_FILES
             plugin/pluginCreator.h plugin/pluginManager.h plugin/qmledit.h
             plugin/qmlplugin.h plugin/qmlpluginengine.h
+            plugin/qmliconview.h
             plugin/api/qmlpluginapi.h plugin/api/cursor.h plugin/api/scoreelement.h plugin/api/elements.h
             plugin/api/part.h
             plugin/api/score.h
@@ -59,16 +60,19 @@ if (SCRIPT_INTERFACE)
             plugin/api/excerpt.h
             plugin/api/util.h
             plugin/api/selection.h
+            plugin/api/tie.h
             plugin/api/playevent.h
 
             plugin/api/enums.cpp
             plugin/mscorePlugins.cpp plugin/pluginCreator.cpp plugin/pluginManager.cpp plugin/qmledit.cpp
             plugin/qmlplugin.cpp plugin/qmlpluginengine.cpp
+            plugin/qmliconview.cpp
             plugin/api/qmlpluginapi.cpp plugin/api/cursor.cpp plugin/api/scoreelement.cpp plugin/api/elements.cpp
             plugin/api/score.cpp
             plugin/api/excerpt.cpp
             plugin/api/util.cpp
             plugin/api/selection.cpp
+            plugin/api/tie.cpp
             plugin/api/playevent.cpp
             )
 
@@ -204,13 +208,18 @@ QT5_WRAP_UI (ui_headers
       )
 
 if (APPLE)
-      QT5_ADD_RESOURCES (qrc_files musescore.qrc musescorefonts-Mac.qrc shortcut-Mac.qrc)
+      QT5_ADD_RESOURCES (qrc_files musescore.qrc
+            qml.qrc # TODO: replace with qtquick_compiler_add_resources on Qt >= 5.11
+            musescorefonts-Mac.qrc shortcut-Mac.qrc
+            )
 else (APPLE)
       QT5_ADD_RESOURCES (qrc_files musescore.qrc
+            qml.qrc # TODO: replace with qtquick_compiler_add_resources on Qt >= 5.11
             musescorefonts-MScore.qrc
             musescorefonts-Gootville.qrc
             musescorefonts-Bravura.qrc
             musescorefonts-MuseJazz.qrc
+            musescorefonts-Campania.qrc
             musescorefonts-FreeSerif.qrc
             musescorefonts-Free.qrc
             shortcut.qrc)
@@ -381,6 +390,7 @@ add_executable ( ${ExecutableName}
       selinstrument.cpp editstafftype.cpp texttools.cpp
       editpitch.cpp editstringdata.cpp editraster.cpp pianotools.cpp mediadialog.cpp
       workspace.cpp workspacedialog.cpp chordview.cpp
+      workspacecombobox.cpp
       albummanager.cpp
       stafftextproperties.cpp splitstaff.cpp
       tupletdialog.cpp
@@ -463,6 +473,8 @@ add_executable ( ${ExecutableName}
       importmidi/importmidi_voice.cpp importmidi/importmidi_view.cpp importmidi/importmidi_key.cpp
       importmidi/importmidi_tempo.cpp importmidi/importmidi_instrument.cpp
       importmidi/importmidi_chordname.cpp
+      palette/palettedialogs.cpp
+      palette/palettemodel.cpp palette/palettetree.cpp palette/paletteworkspace.cpp palette/palettewidget.cpp
       scorecmp/scorecmp.cpp scorecmp/scorediffmodel.cpp scorecmp/scorelistmodel.cpp
       resourceManager.cpp downloadUtils.cpp
       textcursor.cpp continuouspanel.cpp accessibletoolbutton.cpp scoreaccessibility.cpp
@@ -477,6 +489,8 @@ add_executable ( ${ExecutableName}
       extension.cpp extension.h
       tourhandler.cpp
       script/script.cpp script/scriptentry.cpp script/testscript.cpp script/recorderwidget.cpp
+      qml/msqmlengine.cpp
+      qmldockwidget.cpp
 
       ${WIDGETS_SOURCE_FILES}
       ${COCOABRIDGE}
@@ -644,6 +658,12 @@ if (MINGW)
       install( FILES
          ${MINGW_ROOT}/bin/libgcc_s_seh-1.dll
          DESTINATION bin)
+      if (Qt5Widgets_VERSION VERSION_GREATER_EQUAL "5.12.4")
+         install( FILES
+            ${DEPENDENCIES_DIR}/libcrypto-1_1-x64.dll
+            ${DEPENDENCIES_DIR}/libssl-1_1-x64.dll
+            DESTINATION bin)
+      endif (Qt5Widgets_VERSION VERSION_GREATER_EQUAL "5.12.4")
       install( FILES
          ${DEPENDENCIES_DIR}/portaudio.dll RENAME libportaudio-x86_64-w64-mingw32.static.dll
          DESTINATION bin)
@@ -652,6 +672,12 @@ if (MINGW)
          ${MINGW_ROOT}/bin/libgcc_s_dw2-1.dll
          ${DEPENDENCIES_DIR}/portaudio.dll
          DESTINATION bin)
+      if (Qt5Widgets_VERSION VERSION_GREATER_EQUAL "5.12.4")
+         install( FILES
+            ${DEPENDENCIES_DIR}/libcrypto-1_1.dll
+            ${DEPENDENCIES_DIR}/libssl-1_1.dll
+            DESTINATION bin)
+      endif (Qt5Widgets_VERSION VERSION_GREATER_EQUAL "5.12.4")
    endif (BUILD_64)
 
    install( FILES
@@ -659,16 +685,20 @@ if (MINGW)
       ${MINGW_ROOT}/bin/libwinpthread-1.dll
       ${DEPENDENCIES_DIR}/libogg.dll
       ${DEPENDENCIES_DIR}/libsndfile-1.dll
-      ${MINGW_ROOT}/opt/bin/libeay32.dll
       ${DEPENDENCIES_DIR}/libvorbis.dll
       ${DEPENDENCIES_DIR}/libvorbisfile.dll
-      ${MINGW_ROOT}/opt/bin/ssleay32.dll
       ${QT_INSTALL_BINS}/libEGL.dll
       ${QT_INSTALL_BINS}/libGLESv2.dll
       ${QT_INSTALL_BINS}/opengl32sw.dll
       ${QtInstallLibraries}
       ${PROJECT_SOURCE_DIR}/build/qt.conf
       DESTINATION bin)
+   if (Qt5Widgets_VERSION VERSION_LESS "5.12.4")
+      install( FILES
+         ${MINGW_ROOT}/opt/bin/libeay32.dll
+         ${MINGW_ROOT}/opt/bin/ssleay32.dll
+         DESTINATION bin)
+   endif (Qt5Widgets_VERSION VERSION_LESS "5.12.4")
 
    install (FILES
       ${DEPENDENCIES_DIR}/lame_enc.dll
@@ -748,7 +778,12 @@ else (MINGW)
            if (APPLE)
                set(PORTMIDI_LIB portmidi)
            else (APPLE)
-               set(PORTMIDI_LIB -lportmidi -lporttime) # Remove -lporttime on RPM-based systems where PortTime is part of PortMidi.
+               find_library(PORTTIME_LIB porttime)
+               if (PORTTIME_LIB)
+                   set(PORTMIDI_LIB portmidi porttime)
+               else (PORTTIME_LIB)
+                   set(PORTMIDI_LIB portmidi)
+               endif (PORTTIME_LIB)
            endif (APPLE)
            target_link_libraries(mscore ${PORTMIDI_LIB})
        endif (USE_PORTMIDI)
@@ -891,6 +926,7 @@ else (MINGW)
                   "${QT_INSTALL_BINS}/Qt5Core.dll"  "${QT_INSTALL_BINS}/Qt5Gui.dll"  "${QT_INSTALL_BINS}/Qt5Help.dll"
                   "${QT_INSTALL_BINS}/Qt5Network.dll"  "${QT_INSTALL_BINS}/Qt5PrintSupport.dll"
                   "${QT_INSTALL_BINS}/Qt5Qml.dll"  "${QT_INSTALL_BINS}/Qt5Quick.dll"  "${QT_INSTALL_BINS}/Qt5Sql.dll"
+                  "${QT_INSTALL_BINS}/Qt5QuickControls2.dll" "${QT_INSTALL_BINS}/Qt5QuickTemplates2.dll"
                   "${QT_INSTALL_BINS}/Qt5Svg.dll"  "${QT_INSTALL_BINS}/Qt5Widgets.dll"  "${QT_INSTALL_BINS}/Qt5Xml.dll"
                   "${QT_INSTALL_BINS}/Qt5XmlPatterns.dll"
                   "${QT_INSTALL_BINS}/Qt5WebChannel.dll"
@@ -916,8 +952,13 @@ else (MINGW)
       find_library( dll_vorbis      NAMES "libvorbis"      PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
       find_library( dll_vorbisfile  NAMES "libvorbisfile"  PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
       find_library( dll_portaudio   NAMES "portaudio"      PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
-      find_library( dll_ssl1        NAMES "libeay32"       PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
-      find_library( dll_ssl2        NAMES "ssleay32"       PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
+      if (Qt5Widgets_VERSION VERSION_LESS "5.12.4")
+         find_library( dll_ssl1        NAMES "libeay32"       PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
+         find_library( dll_ssl2        NAMES "ssleay32"       PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
+      else (Qt5Widgets_VERSION VERSION_LESS "5.12.4")
+         find_library( dll_ssl1        NAMES "libcrypto-1_1-x64" "libcrypto-1_1"  PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
+         find_library( dll_ssl2        NAMES "libssl-1_1-x64" "libssl-1_1"        PATHS ${DEPENDENCIES_DIR} NO_DEFAULT_PATH)
+      endif (Qt5Widgets_VERSION VERSION_LESS "5.12.4")
 
       list(APPEND dlls_to_copy ${dll_lame} ${dll_ogg} ${dll_sndfile} ${dll_vorbis} ${dll_vorbisfile} ${dll_portaudio} ${dll_ssl1} ${dll_ssl2} "$<TARGET_FILE_DIR:mscore>/${MSCORE_OUTPUT_NAME}.exe")
       set( output_dir_for_dlls "${PROJECT_BINARY_DIR}/../msvc.install${ARCH_TYPE}/bin")
@@ -1024,6 +1065,7 @@ if (APPLE)
       ../fonts/gootville/GootvilleText.otf
       ../fonts/mscore/MScoreText.ttf
       ../fonts/musejazz/MuseJazzText.otf
+      ../fonts/campania/Campania.otf
       ../fonts/FreeSerif.ttf
       ../fonts/FreeSerifBold.ttf
       ../fonts/FreeSerifItalic.ttf

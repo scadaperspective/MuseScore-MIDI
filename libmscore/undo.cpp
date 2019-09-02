@@ -1507,11 +1507,25 @@ void ChangeStyleVal::flip(EditData*)
       QVariant v = score->styleV(idx);
       if (v != value) {
             score->style().set(idx, value);
-            if (idx == Sid::chordDescriptionFile) {
-                  score->style().chordList()->unload();
-                  if (score->styleB(Sid::chordsXmlFile))
-                      score->style().chordList()->read("chords.xml");
-                  score->style().chordList()->read(value.toString());
+            switch (idx) {
+                  case Sid::chordExtensionMag:
+                  case Sid::chordExtensionAdjust:
+                  case Sid::chordModifierMag:
+                  case Sid::chordModifierAdjust:
+                  case Sid::chordDescriptionFile: {
+                        score->style().chordList()->unload();
+                        qreal emag = score->styleD(Sid::chordExtensionMag);
+                        qreal eadjust = score->styleD(Sid::chordExtensionAdjust);
+                        qreal mmag = score->styleD(Sid::chordModifierMag);
+                        qreal madjust = score->styleD(Sid::chordModifierAdjust);
+                        score->style().chordList()->configureAutoAdjust(emag, eadjust, mmag, madjust);
+                        if (score->styleB(Sid::chordsXmlFile))
+                            score->style().chordList()->read("chords.xml");
+                        score->style().chordList()->read(score->styleSt(Sid::chordDescriptionFile));
+                        }
+                        break;
+                  default:
+                        break;
                   }
             score->styleChanged();
             }
@@ -1576,7 +1590,7 @@ void ChangeVelocity::flip(EditData*)
 //---------------------------------------------------------
 
 ChangeMStaffProperties::ChangeMStaffProperties(Measure* m, int i, bool v, bool s)
-   : measure(m), staffIdx(i), visible(v), slashStyle(s)
+   : measure(m), staffIdx(i), visible(v), stemless(s)
       {
       }
 
@@ -1587,11 +1601,11 @@ ChangeMStaffProperties::ChangeMStaffProperties(Measure* m, int i, bool v, bool s
 void ChangeMStaffProperties::flip(EditData*)
       {
       bool v = measure->visible(staffIdx);
-      bool s = measure->slashStyle(staffIdx);
+      bool s = measure->stemless(staffIdx);
       measure->setStaffVisible(staffIdx, visible);
-      measure->setStaffSlashStyle(staffIdx, slashStyle);
+      measure->setStaffStemless(staffIdx, stemless);
       visible    = v;
-      slashStyle = s;
+      stemless = s;
       }
 
 //---------------------------------------------------------
@@ -1897,6 +1911,46 @@ void ChangeNoteEvents::flip(EditData*)
       chord->setPlayEvents(events);
       events = e;
       */
+      }
+
+//---------------------------------------------------------
+//   ChangeNoteEventList::flip
+//---------------------------------------------------------
+
+void ChangeNoteEventList::flip(EditData*)
+      {
+      note->score()->setPlaylistDirty();
+      // Get copy of current list.
+      NoteEventList nel = note->playEvents();
+      // Replace current copy with new list.
+      note->setPlayEvents(newEvents);
+      // Save copy of replaced list.
+      newEvents = nel;
+      // Get a copy of the current playEventType.
+      PlayEventType petval = note->chord()->playEventType();
+      // Replace current setting with new setting.
+      note->chord()->setPlayEventType(newPetype);
+      // Save copy of old setting.
+      newPetype = petval;
+      }
+
+//---------------------------------------------------------
+//   ChangeNoteEventList::flip
+//---------------------------------------------------------
+
+void ChangeChordPlayEventType::flip(EditData*)
+      {
+      chord->score()->setPlaylistDirty();
+      // Flips data between NoteEventList's.
+      size_t n = chord->notes().size();
+      for (size_t i = 0; i < n; ++i) {
+            Note* note = chord->notes()[i];
+            note->playEvents().swap(events[int(i)]);
+            }
+      // Flips PlayEventType between chord and undo.
+      PlayEventType curPetype = chord->playEventType();
+      chord->setPlayEventType(petype);
+      petype = curPetype;
       }
 
 //---------------------------------------------------------
@@ -2212,9 +2266,12 @@ void ChangeNoteEvent::flip(EditData*)
       NoteEvent e = *oldEvent;
       *oldEvent   = newEvent;
       newEvent    = e;
-
-      // TODO:
-      note->chord()->setPlayEventType(PlayEventType::User);
+      // Get a copy of the current playEventType.
+      PlayEventType petval = note->chord()->playEventType();
+      // Replace current setting with new setting.
+      note->chord()->setPlayEventType(newPetype);
+      // Save copy of old setting.
+      newPetype = petval;
       }
 
 //---------------------------------------------------------

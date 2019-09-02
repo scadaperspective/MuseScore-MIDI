@@ -68,6 +68,7 @@ enum class Pid {
       Z,
       SMALL,
       SHOW_COURTESY,
+      KEYSIG_MODE,
       LINE_TYPE,
       PITCH,
 
@@ -255,7 +256,7 @@ enum class Pid {
       STEP_OFFSET,
       STAFF_SHOW_BARLINES,
       STAFF_SHOW_LEDGERLINES,
-      STAFF_SLASH_STYLE,
+      STAFF_STEMLESS,
 
       STAFF_NOTEHEAD_SCHEME,
       STAFF_GEN_CLEF,
@@ -338,6 +339,7 @@ enum class Pid {
       CHORD_LINE_STRAIGHT,
       TREMOLO_TYPE,
       TREMOLO_PLACEMENT,
+      HARMONY_TYPE,
 
       END
       };
@@ -373,7 +375,7 @@ enum class P_TYPE : char {
       INT_LIST,
       GLISSANDO_STYLE,
       BARLINE_TYPE,
-      HEAD_TYPE,         // enum class Notehead::Type
+      HEAD_TYPE,        // enum class Notehead::Type
       HEAD_GROUP,       // enum class Notehead::Group
       ZERO_INT,         // displayed with offset +1
       FONT,
@@ -382,7 +384,8 @@ enum class P_TYPE : char {
       CHANGE_METHOD,    // enum class VeloChangeMethod (for single notedynamics)
       CHANGE_SPEED,     // enum class Dynamic::Speed
       CLEF_TYPE,        // enum class ClefType
-      DYNAMIC_TYPE      // enum class Dynamic::Type
+      DYNAMIC_TYPE,     // enum class Dynamic::Type
+      KEYMODE,          // enum class KeyMode
       };
 
 extern QVariant readProperty(Pid type, XmlReader& e);

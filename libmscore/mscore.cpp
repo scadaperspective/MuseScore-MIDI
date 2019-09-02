@@ -347,6 +347,7 @@ void MScore::init()
 #if !defined(Q_OS_MAC) && !defined(Q_OS_IOS)
       static const char* fonts[] = {
             ":/fonts/musejazz/MuseJazzText.otf",
+            ":/fonts/campania/Campania.otf",
             ":/fonts/FreeSans.ttf",
             ":/fonts/FreeSerif.ttf",
             ":/fonts/FreeSerifBold.ttf",
@@ -419,7 +420,7 @@ const char* MScore::errorMessage()
             if (e.no == _error)
                   return e.txt;
             }
-      return "unknown error";
+      return QT_TRANSLATE_NOOP("error", "Unknown error");
       }
 
 //---------------------------------------------------------

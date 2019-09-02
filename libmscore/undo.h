@@ -37,11 +37,12 @@
 #include "stafftype.h"
 #include "cleflist.h"
 #include "note.h"
+#include "chord.h"
 #include "drumset.h"
 #include "rest.h"
 #include "fret.h"
 
-Q_DECLARE_LOGGING_CATEGORY(undoRedo)
+Q_DECLARE_LOGGING_CATEGORY(undoRedo);
 
 namespace Ms {
 
@@ -722,11 +723,11 @@ class ChangeMStaffProperties : public UndoCommand {
       Measure* measure;
       int staffIdx;
       bool visible;
-      bool slashStyle;
+      bool stemless;
       void flip(EditData*) override;
 
    public:
-      ChangeMStaffProperties(Measure*, int staffIdx, bool visible, bool slashStyle);
+      ChangeMStaffProperties(Measure*, int staffIdx, bool visible, bool stemless);
       UNDO_NAME("ChangeMStaffProperties")
       };
 
@@ -896,6 +897,39 @@ class ChangeNoteEvents : public UndoCommand {
    public:
       ChangeNoteEvents(Chord* /*n*/, const QList<NoteEvent*>& l) : /*chord(n),*/ events(l) {}
       UNDO_NAME("ChangeNoteEvents")
+      };
+
+//---------------------------------------------------------
+//   ChangeNoteEventList
+//---------------------------------------------------------
+
+class ChangeNoteEventList : public UndoCommand {
+      Ms::Note*      note;
+      NoteEventList  newEvents;
+      PlayEventType  newPetype;
+
+      void flip(EditData*) override;
+
+   public:
+      ChangeNoteEventList(Ms::Note* n, NoteEventList& ne) :
+         note(n), newEvents(ne), newPetype(PlayEventType::User) {}
+      UNDO_NAME("ChangeNoteEventList")
+      };
+
+//---------------------------------------------------------
+//   ChangeChordPlayEventType
+//---------------------------------------------------------
+
+class ChangeChordPlayEventType : public UndoCommand {
+      Ms::Chord* chord;
+      Ms::PlayEventType petype;
+      QList<NoteEventList> events;
+
+      void flip(EditData*) override;
+
+   public:
+      ChangeChordPlayEventType(Chord* c, Ms::PlayEventType pet) : chord(c), petype(pet) { events = c->getNoteEventLists(); }
+      UNDO_NAME("ChangeChordPlayEventType")
       };
 
 //---------------------------------------------------------
@@ -1190,12 +1224,13 @@ class ChangeNoteEvent : public UndoCommand {
       Note* note;
       NoteEvent* oldEvent;
       NoteEvent newEvent;
+      PlayEventType  newPetype;
 
       void flip(EditData*) override;
 
    public:
       ChangeNoteEvent(Note* n, NoteEvent* oe, const NoteEvent& ne)
-         : note(n), oldEvent(oe), newEvent(ne) {}
+         : note(n), oldEvent(oe), newEvent(ne), newPetype(PlayEventType::User) {}
       UNDO_NAME("ChangeNoteEvent")
       };
 

@@ -1477,6 +1477,7 @@ void Score::cmdFlip()
                || e->isJump()
                || e->isMarker()
                || e->isStaffText()
+               || e->isSticking()
                || e->isFingering()
                || e->isDynamic()
                || e->isHarmony()
@@ -1916,6 +1917,52 @@ void Score::deleteItem(Element* el)
                   }
                   break;
 
+            case ElementType::MARKER:
+                  {
+                  Measure* m = toMeasure(el->parent());
+                  if (m->isMMRest()) {
+                        // find corresponding marker in underlying measure
+                        bool found = false;
+                        // the marker may be in the first measure...
+                        for (Element* e : m->mmRestFirst()->el()) {
+                              if (e->isMarker() && e->subtype() == el->subtype()) {
+                                    undoRemoveElement(e);
+                                    found = true;
+                                    break;
+                                    }
+                              }
+                        if (!found) {
+                              // ...or it may be in the last measure
+                              for (Element* e : m->mmRestLast()->el()) {
+                                    if (e->isMarker() && e->subtype() == el->subtype()) {
+                                          undoRemoveElement(e);
+                                          break;
+                                          }
+                                    }
+                              }
+                        }
+                  // whether m is an mmrest or not, we still need to remove el
+                  undoRemoveElement(el);
+                  }
+                  break;
+
+            case ElementType::JUMP:
+                  {
+                  Measure* m = toMeasure(el->parent());
+                  if (m->isMMRest()) {
+                        // find corresponding jump in underlying measure
+                        for (Element* e : m->mmRestLast()->el()) {
+                              if (e->isJump() && e->subtype() == el->subtype()) {
+                                    undoRemoveElement(e);
+                                    break;
+                                    }
+                              }
+                        }
+                  // whether m is an mmrest or not, we still need to remove el
+                  undoRemoveElement(el);
+                  }
+                  break;
+
             default:
                   undoRemoveElement(el);
                   break;
@@ -2295,6 +2342,8 @@ void Score::cmdDeleteSelection()
                         links = *e->links();
 
                   // find location of element to select after deleting notes
+                  // get tick of element itself if that is valid
+                  // or of spanner or parent if that is more valid
                   Fraction tick  = { -1, 1 };
                   int track = -1;
                   if (!cr) {
@@ -2305,7 +2354,7 @@ void Score::cmdDeleteSelection()
                         else if (e->isSpannerSegment())
                               tick = toSpannerSegment(e)->spanner()->tick();
                         else if (e->parent()
-                           && (e->parent()->isSegment() || e->parent()->isChord()))
+                           && (e->parent()->isSegment() || e->parent()->isChord() || e->parent()->isNote() || e->parent()->isRest()))
                               tick = e->parent()->tick();
                         //else tick < 0
                         track = e->track();
@@ -4262,6 +4311,7 @@ void Score::undoAddElement(Element* element)
          && et != ElementType::DYNAMIC
          && et != ElementType::STAFF_TEXT
          && et != ElementType::SYSTEM_TEXT
+         && et != ElementType::STICKING
          && et != ElementType::TREMOLO
          && et != ElementType::ARPEGGIO
          && et != ElementType::SYMBOL
@@ -4293,6 +4343,7 @@ void Score::undoAddElement(Element* element)
                 || element->isTremoloBar()
                 || element->isDynamic()
                 || element->isStaffText()
+                || element->isSticking()
                 || element->isFretDiagram()
                 || element->isHarmony()
                 || element->isHairpin()
@@ -4405,6 +4456,7 @@ void Score::undoAddElement(Element* element)
                      || element->isTremoloBar()
                      || element->isDynamic()
                      || element->isStaffText()
+                     || element->isSticking()
                      || element->isFretDiagram()
                      || element->isFermata()
                      || element->isHarmony()) {
@@ -4420,7 +4472,7 @@ void Score::undoAddElement(Element* element)
                         // make harmony child of fret diagram if possible
                         if (ne->isHarmony()) {
                               for (Element* segel : segment->annotations()) {
-                                    if (segel->isFretDiagram()) {
+                                    if (segel && segel->isFretDiagram() && segel->track() == ntrack) {
                                           ne->setTrack(segel->track());
                                           ne->setParent(segel);
                                           break;

@@ -32,6 +32,8 @@ namespace Ms {
 namespace PluginAPI {
 
 class Element;
+class Tie;
+extern Tie* tieWrap(Ms::Tie* tie);
 
 //---------------------------------------------------------
 //   wrap
@@ -290,7 +292,7 @@ class Element : public Ms::PluginAPI::ScoreElement {
       API_PROPERTY( stepOffset,              STEP_OFFSET               )
       API_PROPERTY( staffShowBarlines,       STAFF_SHOW_BARLINES       )
       API_PROPERTY( staffShowLedgerlines,    STAFF_SHOW_LEDGERLINES    )
-      API_PROPERTY( staffSlashStyle,         STAFF_SLASH_STYLE         )
+      API_PROPERTY( staffStemless,           STAFF_STEMLESS            )
       API_PROPERTY( staffNoteheadScheme,     STAFF_NOTEHEAD_SCHEME     )
       API_PROPERTY( staffGenClef,            STAFF_GEN_CLEF            )
       API_PROPERTY( staffGenTimesig,         STAFF_GEN_TIMESIG         )
@@ -405,8 +407,20 @@ class Note : public Element {
 //       Q_PROPERTY(bool                           small             READ small              WRITE undoSetSmall)
 //       Q_PROPERTY(int                            string            READ string             WRITE undoSetString)
 //       Q_PROPERTY(int                            subchannel        READ subchannel)
-//       Q_PROPERTY(Ms::Tie*                       tieBack           READ tieBack)
-//       Q_PROPERTY(Ms::Tie*                       tieFor            READ tieFor)
+      /// Backward tie for this Note.
+      /// \since MuseScore 3.3
+      Q_PROPERTY(Ms::PluginAPI::Tie*               tieBack           READ tieBack)
+      /// Forward tie for this Note.
+      /// \since MuseScore 3.3
+      Q_PROPERTY(Ms::PluginAPI::Tie*               tieForward        READ tieForward)
+      /// The first note of a series of ties to this note.
+      /// This will return the calling note if there is not tieBack.
+      /// \since MuseScore 3.3
+      Q_PROPERTY(Ms::PluginAPI::Note*              firstTiedNote     READ firstTiedNote)
+      /// The last note of a series of ties to this note.
+      /// This will return the calling note if there is not tieForward.
+      /// \since MuseScore 3.3
+      Q_PROPERTY(Ms::PluginAPI::Note*              lastTiedNote      READ lastTiedNote)
       /// The NoteType of the note.
       /// \since MuseScore 3.2.1
       Q_PROPERTY(Ms::NoteType                      noteType          READ noteType)
@@ -446,6 +460,12 @@ class Note : public Element {
 
       int tpc() const { return note()->tpc(); }
       void setTpc(int val);
+
+      Ms::PluginAPI::Tie* tieBack()    const { return note()->tieBack() != nullptr ? tieWrap(note()->tieBack()) : nullptr; }
+      Ms::PluginAPI::Tie* tieForward() const { return note()->tieFor() != nullptr ? tieWrap(note()->tieFor()) : nullptr; }
+
+      Ms::PluginAPI::Note* firstTiedNote() { return wrap<Note>(note()->firstTiedNote()); }
+      Ms::PluginAPI::Note* lastTiedNote()  { return wrap<Note>(note()->lastTiedNote()); }
 
       QQmlListProperty<Element> dots() { return wrapContainerProperty<Element>(this, note()->dots()); }
       QQmlListProperty<Element> elements() { return wrapContainerProperty<Element>(this, note()->el());   }
@@ -592,6 +612,10 @@ class Measure : public Element {
       Q_PROPERTY(Ms::PluginAPI::Measure* prevMeasure       READ prevMeasure)
 //       Q_PROPERTY(Ms::Measure* prevMeasureMM     READ prevMeasureMM)
 
+      /// List of measure-related elements: layout breaks, jump/repeat markings etc.
+      /// \since MuseScore 3.3
+      Q_PROPERTY(QQmlListProperty<Ms::PluginAPI::Element> elements READ elements)
+
    public:
       /// \cond MS_INTERNAL
       Measure(Ms::Measure* m = nullptr, Ownership own = Ownership::SCORE)
@@ -605,6 +629,8 @@ class Measure : public Element {
 
       Measure* prevMeasure() { return wrap<Measure>(measure()->prevMeasure(), Ownership::SCORE); }
       Measure* nextMeasure() { return wrap<Measure>(measure()->nextMeasure(), Ownership::SCORE); }
+
+      QQmlListProperty<Element> elements() { return wrapContainerProperty<Element>(this, measure()->el()); }
       /// \endcond
       };
 

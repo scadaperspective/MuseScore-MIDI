@@ -20,15 +20,15 @@
 #ifndef __QMLPLUGINENGINE_H__
 #define __QMLPLUGINENGINE_H__
 
-namespace Ms {
+#include "../qml/msqmlengine.h"
 
-class QmlPlugin;
+namespace Ms {
 
 //---------------------------------------------------------
 //   QmlPluginEngine
 //---------------------------------------------------------
 
-class QmlPluginEngine : public QQmlEngine {
+class QmlPluginEngine : public MsQmlEngine {
    public:
       QmlPluginEngine(QObject* parent = nullptr);
       };
