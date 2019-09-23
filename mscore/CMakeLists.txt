@@ -89,8 +89,8 @@ QT5_WRAP_UI (ui_headers
       editstaff.ui timesigproperties.ui
       instrwizard.ui timesigwizard.ui newwizard.ui aboutbox.ui aboutmusicxmlbox.ui
       transposedialog.ui excerptsdialog.ui  stafftext.ui tupletdialog.ui
-      articulation.ui metaedit.ui palette.ui selectdialog.ui selectnotedialog.ui
-      synthcontrol.ui splitstaff.ui cellproperties.ui keyedit.ui selectinstr.ui
+      articulation.ui metaedit.ui paletteProperties.ui paletteCellProperties.ui selectdialog.ui selectnotedialog.ui
+      synthcontrol.ui splitstaff.ui keyedit.ui selectinstr.ui
       fretdprops.ui editstafftype.ui sectionbreak.ui  bend.ui tremolobar.ui
       editpitch.ui editstringdata.ui editraster.ui mediadialog.ui albummanager.ui layer.ui
       omrpanel.ui masterpalette.ui harmonyedit.ui pathlistdialog.ui
@@ -473,7 +473,7 @@ add_executable ( ${ExecutableName}
       importmidi/importmidi_voice.cpp importmidi/importmidi_view.cpp importmidi/importmidi_key.cpp
       importmidi/importmidi_tempo.cpp importmidi/importmidi_instrument.cpp
       importmidi/importmidi_chordname.cpp
-      palette/palettedialogs.cpp
+      palette/palettedialog.cpp palette/palettecelldialog.cpp
       palette/palettemodel.cpp palette/palettetree.cpp palette/paletteworkspace.cpp palette/palettewidget.cpp
       scorecmp/scorecmp.cpp scorecmp/scorediffmodel.cpp scorecmp/scorelistmodel.cpp
       resourceManager.cpp downloadUtils.cpp
@@ -489,7 +489,7 @@ add_executable ( ${ExecutableName}
       extension.cpp extension.h
       tourhandler.cpp
       script/script.cpp script/scriptentry.cpp script/testscript.cpp script/recorderwidget.cpp
-      qml/msqmlengine.cpp
+      qml/msqmlengine.cpp qml/nativemenu.cpp
       qmldockwidget.cpp
 
       ${WIDGETS_SOURCE_FILES}
@@ -731,7 +731,6 @@ if (MINGW)
       ${QT_INSTALL_QML}
       DESTINATION .
       REGEX ".*d\\.dll" EXCLUDE
-      REGEX ".*QtGraphicalEffects.*" EXCLUDE
       REGEX ".*QtMultimedia.*" EXCLUDE
       REGEX ".*QtSensors.*" EXCLUDE
       REGEX ".*QtTest.*" EXCLUDE
@@ -1049,7 +1048,6 @@ else (MINGW)
          DESTINATION .
          REGEX ".*d\\.dll" EXCLUDE
          REGEX ".pdb" EXCLUDE
-         REGEX ".*QtGraphicalEffects.*" EXCLUDE
          REGEX ".*QtMultimedia.*" EXCLUDE
          REGEX ".*QtSensors.*" EXCLUDE
          REGEX ".*QtTest.*" EXCLUDE
@@ -1082,7 +1080,6 @@ if (APPLE)
       REGEX ".*QtWebkit.*" EXCLUDE
       REGEX ".*QtTest.*" EXCLUDE
       REGEX ".*QtSensors.*" EXCLUDE
-      REGEX ".*QtGraphicalEffects.*" EXCLUDE
       REGEX ".*QtMultimedia.*" EXCLUDE
       REGEX ".*QtAudioEngine.*" EXCLUDE
       REGEX ".*_debug\\.dylib" EXCLUDE)

@@ -2,7 +2,7 @@
 //  MuseScore
 //  Music Composition & Notation
 //
-//  Copyright (C) 2019 Werner Schweer and others
+//  Copyright (C) 2019 MuseScore BVBA
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License version 2.
@@ -17,38 +17,22 @@
 //  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //=============================================================================
 
-#ifndef __PALETTEDIALOGS_H__
-#define __PALETTEDIALOGS_H__
+import QtQuick 2.1
+import QtGraphicalEffects 1.0
 
-namespace Ui {
-      class PaletteProperties;
-      }
+Item {
+    property string source: ""
+    property color color: globalStyle.buttonText
 
-namespace Ms {
-
-class PalettePanel;
-
-//---------------------------------------------------------
-//   PalettePropertiesDialog
-//---------------------------------------------------------
-
-class PalettePropertiesDialog : public QDialog {
-      Q_OBJECT
-
-      Ui::PaletteProperties* ui;
-
-      PalettePanel* palette;
-
-      void setData(const PalettePanel*);
-
-      virtual void accept();
-      virtual void hideEvent(QHideEvent*);
-
-   public:
-      PalettePropertiesDialog(PalettePanel*, QWidget* parent = nullptr);
-      ~PalettePropertiesDialog();
-      };
-
-} // namespace Ms
-
-#endif
+    Image {
+        id: img
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        source: parent.source
+    }
+    ColorOverlay {
+        anchors.fill: img
+        source: img
+        color: parent.color
+    }
+}

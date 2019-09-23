@@ -21,8 +21,7 @@
 #define __PALETTE_H__
 
 #include "palette/palettetree.h"
-#include "ui_palette.h"
-#include "ui_cellproperties.h"
+#include "ui_paletteProperties.h"
 #include "libmscore/sym.h"
 
 namespace Ms {
@@ -45,20 +44,6 @@ class PaletteProperties : public QDialog, private Ui::PaletteProperties {
       virtual void hideEvent(QHideEvent*);
    public:
       PaletteProperties(Palette* p, QWidget* parent = 0);
-      };
-
-//---------------------------------------------------------
-//   PaletteCellProperties
-//---------------------------------------------------------
-
-class PaletteCellProperties : public QDialog, private Ui::PaletteCellProperties {
-      Q_OBJECT
-
-      PaletteCell* cell;
-      virtual void accept();
-      virtual void hideEvent(QHideEvent*);
-   public:
-      PaletteCellProperties(PaletteCell* p, QWidget* parent = 0);
       };
 
 //---------------------------------------------------------

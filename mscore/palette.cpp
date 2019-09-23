@@ -48,6 +48,7 @@
 #include "tourhandler.h"
 #include "script/recorderwidget.h"
 #include "libmscore/fret.h"
+#include "scoreaccessibility.h"
 
 namespace Ms {
 
@@ -276,12 +277,13 @@ void Palette::contextMenuEvent(QContextMenuEvent* event)
             emit changed();
             }
       else if (action == contextAction) {
-            PaletteCell* c = cellAt(i);
+            //disable due to the new implementation
+            /*PaletteCell* c = cellAt(i);
             if (c == 0)
                   return;
             PaletteCellProperties props(c);
             if (props.exec())
-                  emit changed();
+                  emit changed();*/
             }
       else if (moreAction && (action == moreAction))
             emit displayMore(_name);
@@ -476,6 +478,11 @@ void Palette::applyPaletteElement(Element* element, Qt::KeyboardModifiers modifi
 #endif
 
       ScoreView* viewer = mscore->currentScoreView();
+
+      // exit edit mode, to allow for palette element to be applied properly
+      if (viewer && viewer->editMode() && !(viewer->mscoreState() & STATE_ALLTEXTUAL_EDIT))
+            viewer->changeState(ViewState::NORMAL);
+
       if (viewer->mscoreState() != STATE_EDIT
          && viewer->mscoreState() != STATE_LYRICS_EDIT
          && viewer->mscoreState() != STATE_HARMONY_FIGBASS_EDIT) { // Already in startCmd in this case
@@ -746,9 +753,11 @@ void PaletteScrollArea::keyPressEvent(QKeyEvent* event)
                   else if (idx >= p->size())
                         idx = 0;
                   p->setSelected(idx);
-                  // Set widget name to name of selected key signature. We could
-                  // set the description, but some screen readers ignore it.
-                  setAccessibleName(qApp->translate("Palette", p->cellAt(idx)->name.toUtf8()));
+                  // set widget name to name of selected element
+                  // we could set the description, but some screen readers ignore it
+                  QString name = p->cellAt(idx)->translatedName();
+                  ScoreAccessibility::makeReadable(name);
+                  setAccessibleName(name);
                   QAccessibleEvent aev(this, QAccessible::NameChanged);
                   QAccessible::updateAccessibility(&aev);
                   p->update();
@@ -776,11 +785,6 @@ void Palette::mouseDoubleClickEvent(QMouseEvent* ev)
             return;
       if (score->selection().isNone())
             return;
-      
-      // exit edit mode, to allow for palette element to be applied properly
-      ScoreView* viewer = mscore->currentScoreView();
-      if (viewer && viewer->editMode() && !(viewer->mscoreState() & STATE_ALLTEXTUAL_EDIT))
-            viewer->changeState(ViewState::NORMAL);
 
       PaletteCell* cell = cellAt(i);
       if (!cell)
@@ -893,6 +897,10 @@ void Palette::nextPaletteElement()
       if (i < size() && cellAt(i))
             currentIdx = i;
 
+      // TODO: screenreader support
+      //QString name = qApp->translate("Palette", cellAt(i)->name.toUtf8());
+      //ScoreAccessibility::makeReadable(name);
+
       update();
       }
 
@@ -911,6 +919,10 @@ void Palette::prevPaletteElement()
       i--;
       if (i >= 0 && cellAt(i))
             currentIdx = i;
+
+      // TODO: screenreader support
+      //QString name = qApp->translate("Palette", cellAt(i)->name.toUtf8());
+      //ScoreAccessibility::makeReadable(name);
 
       update();
       }
@@ -1247,8 +1259,7 @@ bool Palette::event(QEvent* ev)
                   return false;
             if (cellAt(idx) == 0)
                   return false;
-            QToolTip::showText(he->globalPos(),
-               qApp->translate("Palette", cellAt(idx)->name.toUtf8()), this);
+            QToolTip::showText(he->globalPos(), cellAt(idx)->translatedName(), this);
             return false;
             }
       return QWidget::event(ev);
@@ -1663,7 +1674,6 @@ PaletteProperties::PaletteProperties(Palette* p, QWidget* parent)
       cellWidth->setValue(palette->gridWidth());
       cellHeight->setValue(palette->gridHeight());
       showGrid->setChecked(palette->drawGrid());
-      moreElements->setChecked(palette->moreElements());
       elementOffset->setValue(palette->yOffset());
       mag->setValue(palette->mag());
 
@@ -1679,7 +1689,6 @@ void PaletteProperties::accept()
       palette->setName(name->text());
       palette->setGrid(cellWidth->value(), cellHeight->value());
       palette->setDrawGrid(showGrid->isChecked());
-      palette->setMoreElements(moreElements->isChecked());
       palette->setYOffset(elementOffset->value());
       palette->setMag(mag->value());
       palette->emitChanged();
@@ -1691,52 +1700,6 @@ void PaletteProperties::accept()
 //---------------------------------------------------------
 
 void PaletteProperties::hideEvent(QHideEvent* event)
-      {
-      MuseScore::saveGeometry(this);
-      QWidget::hideEvent(event);
-      }
-
-//---------------------------------------------------------
-//   PaletteCellProperties
-//---------------------------------------------------------
-
-PaletteCellProperties::PaletteCellProperties(PaletteCell* p, QWidget* parent)
-   : QDialog(parent)
-      {
-      setObjectName("PaletteCellProperties");
-      setupUi(this);
-      setWindowFlags(this->windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
-      cell = p;
-
-      xoffset->setValue(cell->xoffset);
-      yoffset->setValue(cell->yoffset);
-      scale->setValue(cell->mag);
-      drawStaff->setChecked(cell->drawStaff);
-      name->setText(p->name);
-
-      MuseScore::restoreGeometry(this);
-      }
-
-//---------------------------------------------------------
-//   accept
-//---------------------------------------------------------
-
-void PaletteCellProperties::accept()
-      {
-      cell->xoffset = xoffset->value();
-      cell->yoffset = yoffset->value();
-      cell->mag     = scale->value();
-      cell->name    = name->text();
-      cell->drawStaff = drawStaff->isChecked();
-      QDialog::accept();
-      }
-
-//---------------------------------------------------------
-//   hideEvent
-//---------------------------------------------------------
-
-void PaletteCellProperties::hideEvent(QHideEvent* event)
       {
       MuseScore::saveGeometry(this);
       QWidget::hideEvent(event);

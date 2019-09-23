@@ -25,12 +25,17 @@
 
 namespace Ms {
 
+class PaletteCell;
+using PaletteCellPtr = std::shared_ptr<PaletteCell>;
+using PaletteCellConstPtr = std::shared_ptr<const PaletteCell>;
+
 //---------------------------------------------------------
 //   PaletteCell
 //---------------------------------------------------------
 
 struct PaletteCell {
       std::unique_ptr<Element> element;
+      std::unique_ptr<Element> untranslatedElement;
       QString name;           // used for tool tip
       QString tag;
 
@@ -44,17 +49,24 @@ struct PaletteCell {
 
       bool visible   { true  };
       bool custom    { false };
+      bool active    { false };
 
       PaletteCell() = default;
       PaletteCell(std::unique_ptr<Element> e, const QString& _name, QString _tag = QString(), qreal _mag = 1.0);
 
       static constexpr const char* mimeDataFormat = "application/musescore/palette/cell";
 
+      const char* translationContext() const;
+      QString translatedName() const;
+
+      void retranslate();
+      void setElementTranslated(bool translate);
+
       void write(XmlWriter& xml) const;
       bool read(XmlReader&);
       QByteArray mimeData() const;
-      static std::unique_ptr<PaletteCell> readMimeData(const QByteArray& data);
-      static std::unique_ptr<PaletteCell> readElementMimeData(const QByteArray& data);
+      static PaletteCellPtr readMimeData(const QByteArray& data);
+      static PaletteCellPtr readElementMimeData(const QByteArray& data);
       };
 
 //---------------------------------------------------------
@@ -62,14 +74,16 @@ struct PaletteCell {
 //---------------------------------------------------------
 
 class PaletteCellIconEngine : public QIconEngine {
-      const PaletteCell* _cell;
+      PaletteCellConstPtr _cell;
       qreal _extraMag = 1.0;
 
+      PaletteCellConstPtr cell() const { return _cell; }
+
    public:
-      PaletteCellIconEngine(const PaletteCell* cell, qreal extraMag = 1.0)
+      PaletteCellIconEngine(PaletteCellConstPtr cell, qreal extraMag = 1.0)
          : _cell(cell), _extraMag(extraMag) {}
 
-      QIconEngine* clone() const override { return new PaletteCellIconEngine(_cell); }
+      QIconEngine* clone() const override { return new PaletteCellIconEngine(cell(), _extraMag); }
 
       void paint(QPainter* painter, const QRect& rect, QIcon::Mode mode, QIcon::State state) override;
       };
@@ -116,7 +130,7 @@ class PalettePanel {
       QString _name;
       Type _type;
 
-      std::vector<std::unique_ptr<PaletteCell>> cells;
+      std::vector<PaletteCellPtr> cells;
 
       QSize _gridSize = QSize(64, 64);
 //       int hgrid;
@@ -124,7 +138,7 @@ class PalettePanel {
 
       qreal _mag = 1.0;
       bool _drawGrid = false;
-//       bool _readOnly;
+      bool _editable = true;
 //       bool _systemPalette;
       qreal _yOffset = 0.0;                // in spatium units of "gscore"
 
@@ -132,6 +146,7 @@ class PalettePanel {
 //       bool _showContextMenu { true };
 
       bool _visible = true;
+      bool _expanded = false;
 
       Type guessType() const;
 
@@ -173,17 +188,25 @@ class PalettePanel {
 
       int ncells() const { return cells.size(); }
       bool empty() const { return cells.empty(); }
-      PaletteCell* cell(int idx) { return cells[idx].get(); }
-      const PaletteCell* cell(int idx) const { return cells[idx].get(); }
+      PaletteCellPtr cell(int idx) { return cells[idx]; }
+      PaletteCellConstPtr cell(int idx) const { return cells[idx]; }
 
-      std::vector<std::unique_ptr<PaletteCell>> takeCells(int idx, int count);
-      bool insertCells(int idx, std::vector<std::unique_ptr<PaletteCell>> cells);
-      bool insertCell(int idx, std::unique_ptr<PaletteCell> cell);
+      std::vector<PaletteCellPtr> takeCells(int idx, int count);
+      bool insertCells(int idx, std::vector<PaletteCellPtr> cells);
+      bool insertCell(int idx, PaletteCellPtr cell);
 
       int findPaletteCell(const PaletteCell& cell, bool matchName = true) const;
 
+      bool expanded() const { return _expanded; }
+      void setExpanded(bool val) { _expanded = val; }
+
+      bool editable() const { return _editable; }
+      void setEditable(bool val) { _editable = val; }
+
       Type type() const { return _type; }
       void setType(Type t) { _type = t; }
+
+      void retranslate();
       };
 
 //---------------------------------------------------------
@@ -198,6 +221,8 @@ struct PaletteTree {
 
       void insert(int idx, PalettePanel*);
       void append(PalettePanel*);
+
+      void retranslate();
       };
 
 } // namespace Ms
