@@ -23,10 +23,21 @@
 #include "palette/paletteworkspace.h"
 #include "plugin/qmliconview.h"
 #include "preferences.h"
+#include "qml/nativetooltip.h"
 
 #include <QQmlContext>
 
 namespace Ms {
+
+//---------------------------------------------------------
+//   PaletteQmlInterface
+//---------------------------------------------------------
+
+PaletteQmlInterface::PaletteQmlInterface(PaletteWorkspace* workspace, QmlNativeToolTip* t, bool enabled, QObject* parent)
+   : QObject(parent), w(workspace), tooltip(t), _palettesEnabled(enabled)
+      {
+      tooltip->setParent(this);
+      }
 
 //---------------------------------------------------------
 //   PaletteQmlInterface::setPaletteBackground
@@ -37,6 +48,18 @@ void PaletteQmlInterface::setPaletteBackground(const QColor& val)
       if (_paletteBackground != val) {
             _paletteBackground = val;
             emit paletteBackgroundChanged();
+            }
+      }
+
+//---------------------------------------------------------
+//   PaletteQmlInterface::setPalettesEnabled
+//---------------------------------------------------------
+
+void PaletteQmlInterface::setPalettesEnabled(bool val)
+      {
+      if (_palettesEnabled != val) {
+            _palettesEnabled = val;
+            emit palettesEnabledChanged();
             }
       }
 
@@ -54,11 +77,13 @@ PaletteWidget::PaletteWidget(PaletteWorkspace* w, QQmlEngine* e, QWidget* parent
       QQmlContext* ctx = rootContext();
       Q_ASSERT(ctx);
 
-      qmlInterface = new PaletteQmlInterface(w, this);
+      QmlNativeToolTip* tooltip = new QmlNativeToolTip(widget());
+
+      qmlInterface = new PaletteQmlInterface(w, tooltip, isEnabled(), this);
       setupStyle();
       ctx->setContextProperty("mscore", qmlInterface);
 
-      setSource(QUrl("qrc:/qml/palettes/PalettesWidget.qml"));
+      setSource(QUrl(qmlSourcePrefix() + "qml/palettes/PalettesWidget.qml"));
 
       singlePaletteAction = new QAction(this);
       singlePaletteAction->setCheckable(true);
@@ -109,6 +134,26 @@ void PaletteWidget::setupStyle()
       }
 
 //---------------------------------------------------------
+//   PaletteWidget::activateSearchBox
+//---------------------------------------------------------
+
+void PaletteWidget::activateSearchBox()
+      {
+      ensureQmlViewFocused();
+      qmlInterface->requestPaletteSearch();
+      }
+
+//---------------------------------------------------------
+//   PaletteWidget::applyCurrentPaletteElement
+//---------------------------------------------------------
+
+void PaletteWidget::applyCurrentPaletteElement()
+      {
+      const bool invoked = QMetaObject::invokeMethod(rootObject(), "applyCurrentPaletteElement");
+      Q_ASSERT(invoked);
+      }
+
+//---------------------------------------------------------
 //   PaletteWidget::showEvent
 //---------------------------------------------------------
 
@@ -138,6 +183,9 @@ void PaletteWidget::changeEvent(QEvent* evt)
             case QEvent::StyleChange:
                   setupStyle();
                   break;
+            case QEvent::EnabledChange:
+                  qmlInterface->setPalettesEnabled(isEnabled());
+                  break;
             default:
                   break;
             }
@@ -160,6 +208,8 @@ void PaletteWidget::registerQmlTypes()
 
       qmlRegisterUncreatableType<PaletteTreeModel>("MuseScore.Palette", 3, 3, "PaletteTreeModel", "Cannot create palette model from QML");
       qmlRegisterUncreatableType<FilterPaletteTreeModel>("MuseScore.Palette", 3, 3, "FilterPaletteTreeModel", "Cannot create palette model from QML");
+
+      qmlRegisterUncreatableType<QmlNativeToolTip>("MuseScore.Palette", 3, 3, "NativeToolTip", "Use mscore.palette global variable");
 
       qmlRegisterType<QmlIconView>("MuseScore.Views", 3, 3, "QmlIconView");
 

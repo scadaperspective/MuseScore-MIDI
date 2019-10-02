@@ -46,12 +46,14 @@ StyledPopup {
     property bool drawGrid
 
     property int maxHeight: 400
+    implicitHeight: column.height + topPadding + bottomPadding
 
     property bool enablePaletteAnimations: false // disabled by default to avoid unnecessary "add" animations on opening this popup at first time
 
     signal addElementsRequested(var mimeDataList)
 
     Column {
+        id: column
         width: parent.width
         spacing: 8
 
@@ -107,6 +109,8 @@ StyledPopup {
             Text {
                 anchors.centerIn: parent
                 text: moreElementsPopup.libraryPaletteName
+                font: globalStyle.font
+                color: globalStyle.windowText
             }
             StyledButton {
                 width: height
@@ -151,6 +155,8 @@ StyledPopup {
                                 )
                     width: parent.contentWidth
 
+                    ScrollBar.vertical: ScrollBar { enabled: masterPalette.height < masterPalette.implicitHeight }
+
                     // TODO: change settings to "hidden" model?
                     cellSize: moreElementsPopup.cellSize
                     drawGrid: moreElementsPopup.drawGrid
@@ -192,6 +198,14 @@ StyledPopup {
                         ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
                         ToolTip.text: text
 
+                        onHoveredChanged: {
+                            if (hovered) {
+                                mscore.tooltip.item = deleteButton;
+                                mscore.tooltip.text = deleteButton.texst;
+                            } else if (mscore.tooltip.item == deleteButton)
+                                mscore.tooltip.item = null;
+                        }
+
                         padding: 0
 
                         contentItem: StyledIcon {
@@ -227,6 +241,12 @@ StyledPopup {
             }
         }
 
+        Item {
+            // spacer item, adds extra spacing before "drag items..." text
+            width: 1
+            height: 2 - column.spacing
+        }
+
         Text {
             id: bottomText
             width: parent.width
@@ -237,6 +257,12 @@ StyledPopup {
             font.family: globalStyle.font.family
             // make this label's font slightly smaller than other popup text
             font.pointSize: globalStyle.font.pointSize * 0.8
+        }
+
+        Item {
+            // spacer item, adds extra spacing after "drag items..." text
+            width: 1
+            height: 2 - column.spacing
         }
 
         StyledButton {

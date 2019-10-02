@@ -193,7 +193,7 @@ QModelIndex PaletteTreeModel::parent(const QModelIndex& modelIndex) const
 int PaletteTreeModel::rowCount(const QModelIndex& parent) const
       {
       if (!parent.isValid())
-            return palettes().size();
+            return int(palettes().size());
 
       void* iptr = parent.internalPointer();
 
@@ -227,7 +227,7 @@ QVariant PaletteTreeModel::data(const QModelIndex& index, int role) const
             switch (role) {
                   case Qt::DisplayRole:
                   case Qt::AccessibleTextRole:
-                        return qApp->translate("Palette", pp->name().toUtf8());
+                        return pp->translatedName();
                   case VisibleRole:
                         return pp->visible();
                   case CustomRole:
@@ -243,6 +243,8 @@ QVariant PaletteTreeModel::data(const QModelIndex& index, int role) const
                   // TODO showMore?
                   case PaletteTypeRole:
                         return QVariant::fromValue(pp->type());
+                  case PaletteContentTypeRole:
+                        return QVariant::fromValue(pp->contentType());
                   }
             return QVariant();
             }
@@ -744,6 +746,20 @@ bool PaletteTreeModel::insertRows(int row, int count, const QModelIndex& parent)
       }
 
 //---------------------------------------------------------
+//   PaletteTreeModel::insertPalettePanel
+//---------------------------------------------------------
+
+bool PaletteTreeModel::insertPalettePanel(std::unique_ptr<PalettePanel> pp, int row, const QModelIndex& parent)
+      {
+      if (row < 0 || row > int(palettes().size()) || parent != QModelIndex())
+            return false;
+      beginInsertRows(parent, row, row);
+      palettes().insert(palettes().begin() + row, std::move(pp));
+      endInsertRows();
+      return true;
+      }
+
+//---------------------------------------------------------
 //   PaletteTreeModel::updateCellsState
 //---------------------------------------------------------
 
@@ -755,8 +771,8 @@ void PaletteTreeModel::updateCellsState(const Selection& sel, bool deactivateAll
       if (!sel.isSingle() || !cr)
             deactivateAll = true;
 
-      const int npalettes = palettes().size();
-      for (int row = 0; row < npalettes; ++row) {
+      const size_t npalettes = palettes().size();
+      for (size_t row = 0; row < npalettes; ++row) {
             PalettePanel* palette = palettes()[row].get();
             // TODO: should this be turned on for all palettes?
             if (palette->type() != PalettePanel::Type::Beam)
@@ -772,7 +788,7 @@ void PaletteTreeModel::updateCellsState(const Selection& sel, bool deactivateAll
                         }
                   }
 
-            const QModelIndex parent = index(row, 0, QModelIndex());
+            const QModelIndex parent = index(int(row), 0, QModelIndex());
             const QModelIndex first = index(0, 0, parent);
             const QModelIndex last = index(palette->ncells() - 1, 0, parent);
             emit dataChanged(first, last, { CellActiveRole });

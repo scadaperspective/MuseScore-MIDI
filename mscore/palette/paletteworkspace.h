@@ -202,8 +202,12 @@ class PaletteWorkspace : public QObject {
 
       Q_INVOKABLE bool resetPalette(const QModelIndex&);
 
+      Q_INVOKABLE bool savePalette(const QModelIndex&);
+      Q_INVOKABLE bool loadPalette(const QModelIndex&);
+
       bool paletteChanged() const { return userPalette->paletteTreeChanged(); }
 
+      void setUserPaletteTree(std::unique_ptr<PaletteTree> tree);
       void write(XmlWriter&) const;
       bool read(XmlReader&);
 

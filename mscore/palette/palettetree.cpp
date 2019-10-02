@@ -27,9 +27,14 @@
 #include "libmscore/articulation.h"
 #include "libmscore/fret.h"
 #include "libmscore/icon.h"
+#include "libmscore/image.h"
+#include "libmscore/imageStore.h"
 #include "libmscore/mscore.h"
 #include "libmscore/score.h"
 #include "libmscore/textbase.h"
+
+#include "thirdparty/qzip/qzipreader_p.h"
+#include "thirdparty/qzip/qzipwriter_p.h"
 
 namespace Ms {
 
@@ -249,27 +254,27 @@ bool PaletteCell::read(XmlReader& e)
       const bool translateElement = e.hasAttribute("trElement") ? e.intAttribute("trElement") : false;
 
       while (e.readNextStartElement()) {
-            const QStringRef& t1(e.name());
-            if (t1 == "staff")
+            const QStringRef& s(e.name());
+            if (s == "staff")
                   drawStaff = e.readInt();
-            else if (t1 == "xoffset")
+            else if (s == "xoffset")
                   xoffset = e.readDouble();
-            else if (t1 == "yoffset")
+            else if (s == "yoffset")
                   yoffset = e.readDouble();
-            else if (t1 == "mag")
+            else if (s == "mag")
                   mag = e.readDouble();
-            else if (t1 == "tag")
+            else if (s == "tag")
                   tag = e.readElementText();
 
             // added on palettes rework
             // TODO: remove or leave to switch from using attributes later?
-            else if (t1 == "custom")
+            else if (s == "custom")
                   custom = e.readBool();
-            else if (t1 == "visible")
+            else if (s == "visible")
                   visible = e.readBool();
 
             else {
-                  element.reset(Element::name2Element(t1, gscore));
+                  element.reset(Element::name2Element(s, gscore));
                   if (!element)
                         e.unknown();
                   else {
@@ -365,34 +370,34 @@ bool PalettePanel::read(XmlReader& e)
       _name = e.attribute("name");
       _type = Type::Unknown;
       while (e.readNextStartElement()) {
-            const QStringRef t(e.name());
-            if (t == "gridWidth")
+            const QStringRef tag(e.name());
+            if (tag == "gridWidth")
                   _gridSize.setWidth(e.readDouble());
-            else if (t == "gridHeight")
+            else if (tag == "gridHeight")
                   _gridSize.setHeight(e.readDouble());
-            else if (t == "mag")
+            else if (tag == "mag")
                   _mag = e.readDouble();
-            else if (t == "grid")
+            else if (tag == "grid")
                   _drawGrid = e.readInt();
-            else if (t == "moreElements")
+            else if (tag == "moreElements")
                   setMoreElements(e.readInt());
-            else if (t == "yoffset")
+            else if (tag == "yoffset")
                   _yOffset = e.readDouble();
-            else if (t == "drumPalette")      // obsolete
+            else if (tag == "drumPalette")      // obsolete
                   e.skipCurrentElement();
-            else if (t == "type") {
+            else if (tag == "type") {
                   bool ok;
                   const int t = QMetaEnum::fromType<Type>().keyToValue(e.readElementText().toLatin1().constData(), &ok);
                   if (ok)
                         _type = Type(t);
                   }
-            else if (t == "visible")
+            else if (tag == "visible")
                   _visible = e.readBool();
-            else if (e.pasteMode() && t == "expanded")
+            else if (e.pasteMode() && tag == "expanded")
                   _expanded = e.readBool();
-            else if (t == "editable")
+            else if (tag == "editable")
                   _editable = e.readBool();
-            else if (t == "Cell") {
+            else if (tag == "Cell") {
                   PaletteCellPtr cell(new PaletteCell);
                   if (!cell->read(e))
                         continue;
@@ -456,6 +461,173 @@ void PalettePanel::write(XmlWriter& xml) const
             cell->write(xml);
             }
       xml.etag();
+      }
+
+//---------------------------------------------------------
+//   writePaletteFailed
+//---------------------------------------------------------
+
+static void writePaletteFailed(const QString& path)
+      {
+      QString s = qApp->translate("Palette", "Writing Palette File\n%1\nfailed: ").arg(path); // reason?
+      QMessageBox::critical(mscore, qApp->translate("Palette", "Writing Palette File"), s);
+      }
+
+//---------------------------------------------------------
+//   PalettePanel::writeToFile
+///   write as compressed zip file and include
+///   images as needed
+//---------------------------------------------------------
+
+bool PalettePanel::writeToFile(const QString& p) const
+      {
+      QSet<ImageStoreItem*> images;
+      int n = cells.size();
+      for (int i = 0; i < n; ++i) {
+            if (cells[i] == 0 || cells[i]->element == 0 || cells[i]->element->type() != ElementType::IMAGE)
+                  continue;
+            images.insert(toImage(cells[i]->element.get())->storeItem());
+            }
+
+      QString path(p);
+      if (!path.endsWith(".mpal"))
+            path += ".mpal";
+
+      MQZipWriter f(path);
+      // f.setCompressionPolicy(QZipWriter::NeverCompress);
+      f.setCreationPermissions(
+         QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner
+         | QFile::ReadUser | QFile::WriteUser | QFile::ExeUser
+         | QFile::ReadGroup | QFile::WriteGroup | QFile::ExeGroup
+         | QFile::ReadOther | QFile::WriteOther | QFile::ExeOther);
+
+      if (f.status() != MQZipWriter::NoError) {
+            writePaletteFailed(path);
+            return false;
+            }
+      QBuffer cbuf;
+      cbuf.open(QIODevice::ReadWrite);
+      XmlWriter xml(gscore, &cbuf);
+      xml.header();
+      xml.stag("container");
+      xml.stag("rootfiles");
+      xml.stag(QString("rootfile full-path=\"%1\"").arg(XmlWriter::xmlString("palette.xml")));
+      xml.etag();
+      foreach (ImageStoreItem* ip, images) {
+            QString ipath = QString("Pictures/") + ip->hashName();
+            xml.tag("file", ipath);
+            }
+      xml.etag();
+      xml.etag();
+      cbuf.seek(0);
+      //f.addDirectory("META-INF");
+      //f.addDirectory("Pictures");
+      f.addFile("META-INF/container.xml", cbuf.data());
+
+      // save images
+      foreach(ImageStoreItem* ip, images) {
+            QString ipath = QString("Pictures/") + ip->hashName();
+            f.addFile(ipath, ip->buffer());
+            }
+      {
+      QBuffer cbuf1;
+      cbuf1.open(QIODevice::ReadWrite);
+      XmlWriter xml1(gscore, &cbuf1);
+      xml1.header();
+      xml1.stag("museScore version=\"" MSC_VERSION "\"");
+      write(xml1);
+      xml1.etag();
+      cbuf1.close();
+      f.addFile("palette.xml", cbuf1.data());
+      }
+      f.close();
+      if (f.status() != MQZipWriter::NoError) {
+            writePaletteFailed(path);
+            return false;
+            }
+      return true;
+      }
+
+//---------------------------------------------------------
+//   PalettePanel::readFromFile
+//---------------------------------------------------------
+
+bool PalettePanel::readFromFile(const QString& p)
+      {
+      QString path(p);
+      if (!path.endsWith(".mpal"))
+            path += ".mpal";
+
+      MQZipReader f(path);
+      if (!f.exists()) {
+            qDebug("palette <%s> not found", qPrintable(path));
+            return false;
+            }
+      cells.clear();
+
+      QByteArray ba = f.fileData("META-INF/container.xml");
+
+      XmlReader e(ba);
+      // extract first rootfile
+      QString rootfile = "";
+      QList<QString> images;
+      while (e.readNextStartElement()) {
+            if (e.name() != "container") {
+                  e.unknown();
+                  break;;
+                  }
+            while (e.readNextStartElement()) {
+                  if (e.name() != "rootfiles") {
+                        e.unknown();
+                        break;
+                        }
+                  while (e.readNextStartElement()) {
+                        const QStringRef& tag(e.name());
+
+                        if (tag == "rootfile") {
+                              if (rootfile.isEmpty())
+                                    rootfile = e.attribute("full-path");
+                              e.readNext();
+                              }
+                        else if (tag == "file")
+                              images.append(e.readElementText());
+                        else
+                              e.unknown();
+                        }
+                  }
+            }
+      //
+      // load images
+      //
+      foreach(const QString& s, images)
+            imageStore.add(s, f.fileData(s));
+
+      if (rootfile.isEmpty()) {
+            qDebug("can't find rootfile in: %s", qPrintable(path));
+            return false;
+            }
+
+      ba = f.fileData(rootfile);
+      e.clear();
+      e.addData(ba);
+      while (e.readNextStartElement()) {
+            if (e.name() == "museScore") {
+                  QString version = e.attribute("version");
+                  QStringList sl = version.split('.');
+                  int versionId = sl[0].toInt() * 100 + sl[1].toInt();
+                  gscore->setMscVersion(versionId); // TODO: what is this?
+
+                  while (e.readNextStartElement()) {
+                        if (e.name() == "Palette")
+                              read(e);
+                        else
+                              e.unknown();
+                        }
+                  }
+            else
+                  e.unknown();
+            }
+      return true;
       }
 
 //---------------------------------------------------------
@@ -665,6 +837,24 @@ PalettePanel::Type PalettePanel::guessType() const
             };
 
       return Type::Custom;
+      }
+
+//---------------------------------------------------------
+//   PalettePanel::contentType
+///   Returns palette type if it is defined or deduces it
+///   from the palette content for custom palettes.
+//---------------------------------------------------------
+
+PalettePanel::Type PalettePanel::contentType() const
+      {
+      Type t = type();
+      if (t == Type::Unknown || t == Type::Custom)
+            t = guessType();
+
+      if (t == Type::Unknown || t == Type::Custom)
+            return Type::Clef; // if no type can be deduced, use Clef type by default
+
+      return t;
       }
 
 //---------------------------------------------------------

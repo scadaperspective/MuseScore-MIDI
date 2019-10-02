@@ -21,6 +21,8 @@ import QtQuick 2.8
 import QtQuick.Controls 2.1
 import MuseScore.Palette 3.3
 
+import "utils.js" as Utils
+
 Item {
     id: header
 
@@ -58,6 +60,11 @@ Item {
             border.color: "#aeaeae"
         }
 
+        KeyNavigation.up: paletteTree
+        KeyNavigation.down: paletteTree
+        Keys.onDownPressed: paletteTree.focusFirstItem();
+        Keys.onUpPressed: paletteTree.focusLastItem();
+
         StyledToolButton {
             id: searchTextClearButton
             anchors {
@@ -71,15 +78,20 @@ Item {
             flat: true
             onClicked: searchTextInput.clear()
 
-            padding: 8
+            padding: 4
 
             text: qsTr("Clear search text")
-            ToolTip.visible: hovered
-            ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-            ToolTip.text: text
+
+            onHoveredChanged: {
+                if (hovered) {
+                    mscore.tooltip.item = searchTextClearButton;
+                    mscore.tooltip.text = searchTextClearButton.text;
+                } else if (mscore.tooltip.item == searchTextClearButton)
+                    mscore.tooltip.item = null;
+            }
 
             contentItem: StyledIcon {
-                source: "icons/backspace.png"
+                source: "icons/clear.png"
             }
         }
     }
@@ -90,9 +102,11 @@ Item {
 
         visible: false
 
-        y: morePalettesButton.y + morePalettesButton.height
+        y: morePalettesButton.y + morePalettesButton.height + Utils.style.popupMargin
         width: parent.width
-        height: paletteTree.height * 0.8
+        maxHeight: paletteTree.height * 0.8
+
+        arrowX: morePalettesButton.x + morePalettesButton.width / 2 - x
 
         modal: true
         dim: false
@@ -108,5 +122,10 @@ Item {
             if (!palettesWidget.hasFocus && !palettePopup.inMenuAction)
                 palettePopup.visible = false;
         }
+    }
+
+    Connections {
+        target: mscore
+        onPaletteSearchRequested: searchTextInput.forceActiveFocus()
     }
 }

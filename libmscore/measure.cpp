@@ -3202,7 +3202,7 @@ Element* Measure::nextElementStaff(int staff)
       if (next)
             return next;
 
-      return score()->firstElement();
+      return score()->lastElement();
       }
 
 //---------------------------------------------------------
@@ -3217,7 +3217,7 @@ Element* Measure::prevElementStaff(int staff)
             if (seg)
                   return seg->lastElement(staff);
             }
-      return score()->lastElement();
+      return score()->firstElement();
       }
 
 //---------------------------------------------------------
@@ -3932,13 +3932,18 @@ void Measure::addSystemTrailer(Measure* nm)
 
       // locate a time sig. in the next measure and, if found,
       // check if it has court. sig. turned off
-      TimeSig* ts;
+      TimeSig* ts = nullptr;
       bool showCourtesySig = false;
       Segment* s = findSegmentR(SegmentType::TimeSigAnnounce, _rtick);
       if (score()->genCourtesyTimesig() && !isFinalMeasure && !score()->floatMode()) {
             Segment* tss = nm->findSegmentR(SegmentType::TimeSig, Fraction(0,1));
             if (tss) {
-                  ts = toTimeSig(tss->element(0));
+                  int nstaves = score()->nstaves();
+                  for (int track = 0; track < nstaves * VOICES; track += VOICES) {
+                        ts = toTimeSig(tss->element(track));
+                        if (ts)
+                              break;
+                        }
                   if (ts && ts->showCourtesySig()) {
                         showCourtesySig = true;
                         // if due, create a new courtesy time signature for each staff
@@ -3948,7 +3953,6 @@ void Measure::addSystemTrailer(Measure* nm)
                               add(s);
                               }
                         s->setEnabled(true);
-                        int nstaves = score()->nstaves();
                         for (int track = 0; track < nstaves * VOICES; track += VOICES) {
                               TimeSig* nts = toTimeSig(tss->element(track));
                               if (!nts)

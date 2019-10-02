@@ -25,7 +25,7 @@
 
 namespace Ms {
 
-class PaletteCell;
+struct PaletteCell;
 using PaletteCellPtr = std::shared_ptr<PaletteCell>;
 using PaletteCellConstPtr = std::shared_ptr<const PaletteCell>;
 
@@ -142,8 +142,7 @@ class PalettePanel {
 //       bool _systemPalette;
       qreal _yOffset = 0.0;                // in spatium units of "gscore"
 
-      bool _moreElements = true; // TODO: needed?
-//       bool _showContextMenu { true };
+      bool _moreElements = false; // not used by QML palettes, default is false for compatibility with Palette class. TODO: remove?
 
       bool _visible = true;
       bool _expanded = false;
@@ -158,6 +157,8 @@ class PalettePanel {
 
       const QString& name() const { return _name; }
       void setName(const QString& str) { _name = str; }
+
+      QString translatedName() const { return qApp->translate("Palette", name().toUtf8()); }
 
       QSize gridSize() const { return _gridSize; }
       void setGrid(QSize s) { _gridSize = s; }
@@ -186,7 +187,10 @@ class PalettePanel {
       QByteArray mimeData() const;
       static std::unique_ptr<PalettePanel> readMimeData(const QByteArray& data);
 
-      int ncells() const { return cells.size(); }
+      bool readFromFile(const QString& path);
+      bool writeToFile(const QString& path) const;
+
+      int ncells() const { return int(cells.size()); }
       bool empty() const { return cells.empty(); }
       PaletteCellPtr cell(int idx) { return cells[idx]; }
       PaletteCellConstPtr cell(int idx) const { return cells[idx]; }
@@ -205,6 +209,8 @@ class PalettePanel {
 
       Type type() const { return _type; }
       void setType(Type t) { _type = t; }
+
+      Type contentType() const;
 
       void retranslate();
       };

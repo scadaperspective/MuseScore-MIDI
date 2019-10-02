@@ -298,7 +298,7 @@ AbstractPaletteController::RemoveAction UserPaletteController::showHideOrDeleteD
       msg.setText(question);
       msg.setTextFormat(Qt::PlainText);
       QPushButton* deleteButton = msg.addButton(tr("Delete permanently"), QMessageBox::DestructiveRole);
-      QPushButton* hideButton = msg.addButton(tr("Keep a copy"), QMessageBox::AcceptRole);
+      QPushButton* hideButton = msg.addButton(tr("Hide"), QMessageBox::AcceptRole);
       msg.addButton(QMessageBox::Cancel);
       msg.setDefaultButton(hideButton);
 
@@ -333,7 +333,7 @@ AbstractPaletteController::RemoveAction UserPaletteController::queryRemoveAction
                   }
 
             if (visible)
-                  return showHideOrDeleteDialog(tr("Do you want to permanently delete this custom palette cell or keep a copy in the library?"));
+                  return showHideOrDeleteDialog(tr("Do you want to hide this custom palette cell or permanently delete it?"));
             else {
                   const auto answer = QMessageBox::question(
                         nullptr,
@@ -344,14 +344,14 @@ AbstractPaletteController::RemoveAction UserPaletteController::queryRemoveAction
 
                   if (answer == QMessageBox::Yes)
                         return RemoveAction::DeletePermanently;
-                  return RemoveAction::NoAction;
+                  //return RemoveAction::NoAction;
                   }
 
             return RemoveAction::NoAction;
             }
       else {
             if (visible && custom)
-                  return showHideOrDeleteDialog(tr("Do you want to permanently delete this custom palette or keep a copy in the \"More Palettes\" list?"));
+                  return showHideOrDeleteDialog(tr("Do you want to hide this custom palette or permanently delete it?"));
             return RemoveAction::Hide;
             }
       }
@@ -551,7 +551,8 @@ QModelIndex PaletteWorkspace::poolPaletteIndex(const QModelIndex& index, Ms::Fil
       const QModelIndex poolPaletteIndex = convertIndex(index, poolPalette);
       if (poolPaletteIndex.isValid())
             return poolPaletteIndex;
-      return findPaletteIndex(poolPalette, PalettePanel::Type::Clef);
+      const auto contentType = index.data(PaletteTreeModel::PaletteContentTypeRole).value<PalettePanel::Type>();
+      return findPaletteIndex(poolPalette, contentType);
       }
 
 //---------------------------------------------------------
@@ -576,6 +577,7 @@ FilterPaletteTreeModel* PaletteWorkspace::poolPaletteModel(const QModelIndex& in
 
 AbstractPaletteController* PaletteWorkspace::poolPaletteController(FilterPaletteTreeModel* poolPaletteModel, const QModelIndex& rootIndex)
       {
+      Q_UNUSED(rootIndex);
       UserPaletteController* c = new UserPaletteController(poolPaletteModel, userPalette);
       c->setVisible(false);
       c->setCustom(false);
@@ -736,6 +738,59 @@ bool PaletteWorkspace::resetPalette(const QModelIndex& index)
       }
 
 //---------------------------------------------------------
+//   PaletteWorkspace::savePalette
+//---------------------------------------------------------
+
+bool PaletteWorkspace::savePalette(const QModelIndex& index)
+      {
+      const QModelIndex srcIndex = convertProxyIndex(index, userPalette);
+      const PalettePanel* pp = userPalette->findPalettePanel(srcIndex);
+      if (!pp)
+            return false;
+
+      const QString path = mscore->getPaletteFilename(/* load? */ false, pp->translatedName());
+
+      if (path.isEmpty())
+            return false;
+      return pp->writeToFile(path);
+      }
+
+//---------------------------------------------------------
+//   PaletteWorkspace::loadPalette
+//---------------------------------------------------------
+
+bool PaletteWorkspace::loadPalette(const QModelIndex& index)
+      {
+      const QString path = mscore->getPaletteFilename(/* load? */ true);
+      if (path.isEmpty())
+            return false;
+
+      std::unique_ptr<PalettePanel> pp(new PalettePanel);
+      if (!pp->readFromFile(path))
+            return false;
+      pp->setType(PalettePanel::Type::Custom); // mark the loaded palette custom
+
+      const QModelIndex srcIndex = convertProxyIndex(index, userPalette);
+
+      const int row = srcIndex.row();
+      const QModelIndex parent = srcIndex.parent();
+
+      return userPalette->insertPalettePanel(std::move(pp), row, parent);
+      }
+
+//---------------------------------------------------------
+//   PaletteWorkspace::setUserPaletteTree
+//---------------------------------------------------------
+
+void PaletteWorkspace::setUserPaletteTree(std::unique_ptr<PaletteTree> tree)
+      {
+      if (userPalette)
+            userPalette->setPaletteTree(std::move(tree));
+      else
+            userPalette = new PaletteTreeModel(std::move(tree), /* parent */ this);
+      }
+
+//---------------------------------------------------------
 //   PaletteWorkspace::write
 //---------------------------------------------------------
 
@@ -757,10 +812,7 @@ bool PaletteWorkspace::read(XmlReader& e)
       if (!tree->read(e))
             return false;
 
-      if (userPalette)
-            userPalette->setPaletteTree(std::move(tree));
-      else
-            userPalette = new PaletteTreeModel(std::move(tree), /* parent */ this);
+      setUserPaletteTree(std::move(tree));
 
       return true;
       }

@@ -111,7 +111,17 @@ GridView {
 
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        width: paletteView.empty ? implicitWidth : (implicitWidth + (parent.width - implicitWidth) % cellWidth - 1) // -1 allows to fit into a cell if palette grid is visible
+        width: {
+            if (paletteView.empty)
+                return implicitWidth;
+
+            // align to the left border of some palette cell
+            const addition = (parent.width - implicitWidth) % cellWidth - 1; // -1 allows to fit into a cell if palette grid is visible
+            if (addition < 0)
+                addition += cellWidth;
+
+            return implicitWidth + addition;
+        }
         height: cellHeight - (paletteView.oneRow ? 0 : 1)
 
         text: qsTr("More")
@@ -132,6 +142,8 @@ GridView {
         drawGrid: parent.drawGrid && !parent.empty
         offsetX: parent.contentX
         offsetY: parent.contentY
+        cellWidth: parent.cellWidth
+        cellHeight: parent.cellHeight
 
         DropArea {
             id: paletteDropArea
@@ -157,7 +169,7 @@ GridView {
 
                 if (placeholder.active && placeholder.index == idx)
                     return;
-                placeholder.makePlaceholder(idx, { decoration: "#eeeeee", toolTip: "placeholder", cellActive: false, mimeData: {} });
+                placeholder.makePlaceholder(idx, { decoration: "#eeeeee", toolTip: "placeholder", accessibleText: "", cellActive: false, mimeData: {} });
             }
 
             onEntered: {
@@ -241,7 +253,7 @@ GridView {
         visible: parent.empty
         font: globalStyle.font
         text: paletteController && paletteController.canDropElements
-            ? qsTr("Drag and drop any element here")
+            ? qsTr("Drag and drop any element here\n(Use %1+Shift to add custom element from the score)").arg(Qt.platform.os === "osx" ? "Cmd" : "Ctrl")
             : qsTr("No elements")
         verticalAlignment: Text.AlignVCenter
         color: "grey"
@@ -344,14 +356,18 @@ GridView {
                 anchors.fill: parent
                 icon: model.decoration
                 selected: paletteCell.selected
-                active: model.cellActive
+                active: !!model.cellActive
             }
 
             readonly property var toolTip: model.toolTip
 
-            ToolTip.visible: hovered
-            ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-            ToolTip.text: toolTip ? toolTip : ""
+            onHoveredChanged: {
+                if (hovered) {
+                    mscore.tooltip.item = paletteCell;
+                    mscore.tooltip.text = paletteCell.toolTip ? paletteCell.toolTip : "";
+                } else if (mscore.tooltip.item == paletteCell)
+                    mscore.tooltip.item = null;
+            }
 
             text: model.accessibleText
             // TODO: these may be needed for support of other screenreaders
@@ -370,7 +386,7 @@ GridView {
                     const rootIndex = paletteView.paletteRootIndex;
 
                     if (selection.currentIndex.parent != rootIndex)
-                        selection.clear();
+                        selection.clearSelection();
 
                     if (modifiers & Qt.ShiftModifier && selection.currentIndex.parent == rootIndex) {
                         const model = paletteView.paletteModel;
@@ -394,7 +410,11 @@ GridView {
                 }
             }
 
-            onDoubleClicked: paletteView.paletteController.applyPaletteElement(paletteCell.modelIndex, mscore.keyboardModifiers());
+            onDoubleClicked: {
+                const index = paletteCell.modelIndex;
+                paletteView.selectionModel.setCurrentIndex(index, ItemSelectionModel.Current);
+                paletteView.paletteController.applyPaletteElement(index, mscore.keyboardModifiers());
+            }
 
             MouseArea {
                 id: paletteCellDragArea
@@ -411,7 +431,9 @@ GridView {
 
             Keys.onPressed: {
                 if (event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
-                    paletteView.paletteController.applyPaletteElement(paletteCell.modelIndex, mscore.keyboardModifiers());
+                    const index = paletteCell.modelIndex;
+                    paletteView.selectionModel.setCurrentIndex(index, ItemSelectionModel.Current);
+                    paletteView.paletteController.applyPaletteElement(index, mscore.keyboardModifiers());
                     event.accepted = true;
                 }
             }
@@ -422,17 +444,9 @@ GridView {
                 acceptedButtons: Qt.RightButton
 
                 onClicked: {
-                    if (!paletteView.paletteController.canEdit(paletteView.paletteRootIndex))
-                        return;
-
                     contextMenu.modelIndex = paletteCell.modelIndex;
-                    if (contextMenu.popup) // Menu.popup() is available since Qt 5.10 only
-                        contextMenu.popup();
-                    else {
-                        contextMenu.x = mouseX;
-                        contextMenu.y = mouseY;
-                        contextMenu.open();
-                    }
+                    contextMenu.canEdit = paletteView.paletteController.canEdit(paletteView.paletteRootIndex);
+                    contextMenu.popup();
                 }
             }
 
@@ -472,8 +486,15 @@ GridView {
     Menu {
         id: contextMenu
         property var modelIndex: null
+        property bool canEdit: true
 
         MenuItem {
+            enabled: contextMenu.canEdit
+            text: qsTr("Delete")
+            onTriggered: paletteView.paletteController.remove(contextMenu.modelIndex)
+        }
+        MenuItem {
+            enabled: contextMenu.canEdit
             text: qsTr("Properties…")
             onTriggered: paletteView.paletteController.editCellProperties(contextMenu.modelIndex)
         }

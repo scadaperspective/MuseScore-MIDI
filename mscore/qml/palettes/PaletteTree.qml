@@ -26,7 +26,6 @@ import "utils.js" as Utils
 
 ListView {
     id: paletteTree
-    implicitHeight: contentHeight
 
     keyNavigationEnabled: true
     activeFocusOnTab: true
@@ -35,10 +34,18 @@ ListView {
     property var paletteModel: paletteWorkspace ? paletteWorkspace.mainPaletteModel : null
     property PaletteController paletteController: paletteWorkspace ? paletteWorkspace.mainPaletteController : null
 
+    // Scroll palettes list when dragging a palette close to the list's border
+    property bool itemDragged: false
+    preferredHighlightBegin: Math.min(48, Math.floor(0.1 * height))
+    preferredHighlightEnd: Math.ceil(height - preferredHighlightBegin)
+    highlightRangeMode: itemDragged ? ListView.ApplyRange : ListView.NoHighlightRange
+
     property string filter: ""
     onFilterChanged: {
-        if (filter.length)
+        if (filter.length) {
+            paletteSelectionModel.clear();
             expandedPopupIndex = null;
+            }
         if (paletteModel)
             paletteModel.setFilterFixedString(filter);
     }
@@ -55,6 +62,17 @@ ListView {
         model: paletteTree.paletteModel
     }
 
+    function applyCurrentElement() {
+        var index = paletteSelectionModel.currentIndex;
+        if (!index.valid && filter.length) {
+            // in search and no cell selected: apply the first found element
+            const parentIndex = paletteTreeDelegateModel.modelIndex(0);
+            index = paletteModel.index(0, 0, parentIndex);
+            }
+
+        paletteController.applyPaletteElement(index, Qt.NoModifier);
+    }
+
     property var expandedPopupIndex: null // TODO: or use selection model? That would allow to preserve popups on removing palettes
 
     onExpandedPopupIndexChanged: {
@@ -64,7 +82,7 @@ ListView {
 
     onCurrentIndexChanged: {
         if (paletteSelectionModel.hasSelection && paletteSelectionModel.currentIndex.row != currentIndex)
-            paletteSelectionModel.clear();
+            paletteSelectionModel.clearSelection();
     }
 
     function ensureYVisible(y) {
@@ -122,7 +140,14 @@ ListView {
         NumberAnimation { property: "y"; duration: 150 }
     }
 
-    ScrollBar.vertical: ScrollBar {}
+    ScrollBar.vertical: ScrollBar {
+        id: scrollbar
+
+        readonly property color baseColor: (globalStyle.base.hslLightness > 0.5) ? "#28282a" : "#d7d7d5"
+        readonly property color pressedColor: "#bdbebf"
+
+        Component.onCompleted: contentItem.color = Qt.binding(function() { return scrollbar.pressed ? baseColor : "#bdbebf"; })
+    }
 
     maximumFlickVelocity: 1500
 
@@ -134,6 +159,22 @@ ListView {
         return { display: "", gridSize: Qt.size(1, 1), drawGrid: false, custom: false, editable: false, expanded: false };
     }
 
+    function focusFirstItem() {
+        currentIndex = 0;
+        if (filter.length) // on searching jump directly to the found cells
+            currentItem.focusFirstItem();
+        else
+            currentItem.forceActiveFocus();
+    }
+
+    function focusLastItem() {
+        currentIndex = count - 1;
+        if (filter.length) // on searching jump directly to the found cells
+            currentItem.focusLastItem();
+        else
+            currentItem.forceActiveFocus();
+    }
+
     model: DelegateModel {
         id: paletteTreeDelegateModel
         model: paletteTree.paletteModel
@@ -141,13 +182,23 @@ ListView {
         delegate: ItemDelegate {
             id: control
             topPadding: 0
-            bottomPadding: 0
+            bottomPadding: expanded ? 4 : 0
             property int rowIndex: index
             property var modelIndex: paletteTree.model.modelIndex(index, 0)
 
             Component.onCompleted: {
                 const w = paletteHeader.implicitWidth + leftPadding + rightPadding;
                 paletteTree.implicitWidth = Math.max(paletteTree.implicitWidth, w);
+            }
+
+            function focusFirstItem() {
+                mainPalette.currentIndex = 0;
+                mainPalette.currentItem.forceActiveFocus();
+            }
+
+            function focusLastItem() {
+                mainPalette.currentIndex = mainPalette.count - 1;
+                mainPalette.currentItem.forceActiveFocus();
             }
 
             property bool expanded: filter.length || model.expanded
@@ -162,6 +213,11 @@ ListView {
                 paletteSelectionModel.setCurrentIndex(modelIndex, cmd);
                 paletteTree.currentIndex = index;
             }
+            onDoubleClicked: {
+                forceActiveFocus();
+                paletteSelectionModel.setCurrentIndex(modelIndex, ItemSelectionModel.Deselect);
+                toggleExpand();
+            }
 
             background: Rectangle {
                 visible: !control.Drag.active
@@ -169,14 +225,13 @@ ListView {
                 color: control.selected ? globalStyle.highlight: (control.highlighted ? Qt.lighter(globalStyle.button, 1.2) : (control.down ? globalStyle.button : "transparent"))
             }
 
-            highlighted: activeFocus && !selected
+            highlighted: (activeFocus && !selected) || DelegateModel.isUnresolved
+            opacity: enabled ? 1 : 0.3
 
             property bool popupExpanded: paletteTree.expandedPopupIndex == modelIndex
             function togglePopup() {
                 const expand = !popupExpanded;
                 paletteTree.expandedPopupIndex = expand ? modelIndex : null;
-                if (expand)
-                    palettePopup.needScrollToBottom = true;
             }
 
             property size cellSize: model.gridSize
@@ -214,12 +269,16 @@ ListView {
             Drag.onDragStarted: {
                 if (popupExpanded)
                     togglePopup();
+                paletteTree.itemDragged = true;
                 DelegateModel.inPersistedItems = true;
                 DelegateModel.inItems = false;
                 placeholder.makePlaceholder(control.rowIndex, paletteTree.placeholderData());
             }
 
             Drag.onDragFinished: {
+                paletteTree.itemDragged = false;
+                if (dropAction != Qt.IgnoreAction)
+                    paletteTree.currentIndex = -1;
                 const destIndex = placeholder.active ? placeholder.index : control.rowIndex;
                 placeholder.removePlaceholder();
                 const controller = paletteTree.paletteController;
@@ -239,8 +298,10 @@ ListView {
                 keys: [ "application/musescore/palettetree" ]
                 onEntered: {
                     const idx = control.DelegateModel.itemsIndex;
-                    if (!control.DelegateModel.isUnresolved)
+                    if (!control.DelegateModel.isUnresolved) {
                         placeholder.makePlaceholder(idx, paletteTree.placeholderData());
+                        paletteTree.currentIndex = idx;
+                        }
                 }
                 onDropped: {
                     if (drop.proposedAction == Qt.MoveAction)
@@ -261,7 +322,7 @@ ListView {
                     },
                     State {
                         name: "dragged"
-                        PropertyChanges { target: paletteHeader; text: "" }
+                        PropertyChanges { target: paletteHeader; text: ""; unresolved: true }
                         PropertyChanges { target: mainPaletteContainer; visible: false }
                     }
                 ]
@@ -298,6 +359,8 @@ ListView {
                     }
                     custom: model.custom
 
+                    unresolved: control.DelegateModel.isUnresolved
+
                     onToggleExpandRequested: {
                         paletteTree.currentIndex = control.rowIndex;
                         control.toggleExpand();
@@ -311,7 +374,8 @@ ListView {
                     onInsertNewPaletteRequested: paletteTree.insertCustomPalette(control.rowIndex);
                     onHidePaletteRequested: control.hidePalette();
 
-                    onPaletteResetRequested: paletteWorkspace.resetPalette(control.modelIndex)
+                    paletteWorkspace: paletteTree.paletteWorkspace
+                    modelIndex: control.modelIndex
 
                     onEditPalettePropertiesRequested: {
                         const modelIndex = control.modelIndex;
@@ -371,13 +435,12 @@ ListView {
                     visible: control.popupExpanded
                     maxHeight: Math.min(0.75 * paletteTree.height, 500)
 
-                    y: mainPaletteContainer.y + mainPaletteContainer.height
+                    y: mainPaletteContainer.y + mainPaletteContainer.height + Utils.style.popupMargin
                     width: parent.width
 
                     modal: false
                     focus: true
-                    clip: true
-                    closePolicy: Popup.CloseOnEscape// | Popup.CloseOnPressOutside
+                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside | Popup.CloseOnPressOutsideParent
 
                     // TODO: change settings to "hidden" model?
                     cellSize: control.cellSize
@@ -403,24 +466,27 @@ ListView {
                             control.togglePopup();
                     }
 
-                    onOpened: enablePaletteAnimations = true
-                    onClosed: enablePaletteAnimations = false
-
                     property bool needScrollToBottom: false
 
-                    function scrollToPopupBottom() {
+                    onAboutToShow: {
+                        needScrollToBottom = true;
+                        if (implicitHeight)
+                            scrollToPopupBottom();
+                    }
+                    onOpened: {
+                        scrollToPopupBottom();
                         needScrollToBottom = false;
-                        const popupBottom = implicitHeight + y + control.y;
+                        enablePaletteAnimations = true;
+                    }
+                    onClosed: enablePaletteAnimations = false
+
+                    function scrollToPopupBottom() {
+                        const popupBottom = implicitHeight + y + control.y + 14; // 14 for DropShadow in StyledPopup: depends on blur radius and vertical offset
                         paletteTree.ensureYVisible(popupBottom);
                     }
 
-                    onNeedScrollToBottomChanged: {
-                        if (needScrollToBottom && implicitHeight)
-                            scrollToPopupBottom();
-                    }
-
                     onImplicitHeightChanged: {
-                        if (needScrollToBottom)
+                        if (visible && (needScrollToBottom || atYEnd))
                             scrollToPopupBottom();
                     }
 
@@ -444,8 +510,10 @@ ListView {
     Connections {
         target: palettesWidget
         onHasFocusChanged: {
-            if (!palettesWidget.hasFocus)
-                paletteSelectionModel.clear();
+            if (!palettesWidget.hasFocus) {
+                paletteSelectionModel.clearSelection();
+                expandedPopupIndex = null;
+            }
         }
     }
 }

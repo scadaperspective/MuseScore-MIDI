@@ -20,6 +20,7 @@
 import QtQuick 2.8
 import QtQuick.Controls 2.1
 
+import MuseScore.Palette 3.3
 import MuseScore.Utils 3.3
 
 Item {
@@ -30,13 +31,16 @@ Item {
     property bool hidePaletteElementVisible
     property bool editingEnabled: true
     property bool custom: false
+    property bool unresolved: false
+
+    property PaletteWorkspace paletteWorkspace
+    property var modelIndex: null
 
     signal toggleExpandRequested()
     signal enableEditingToggled(bool val)
     signal hideSelectedElementsRequested()
     signal insertNewPaletteRequested()
     signal hidePaletteRequested()
-    signal paletteResetRequested()
     signal editPalettePropertiesRequested()
 
     implicitHeight: paletteExpandArrow.height
@@ -46,7 +50,7 @@ Item {
         id: paletteExpandArrow
         z: 1000
         width: height
-        visible: paletteHeader.text.length // TODO: make a separate palette placeholder component
+        visible: !paletteHeader.unresolved // TODO: make a separate palette placeholder component
         text: paletteHeader.expanded ? qsTr("Collapse") : qsTr("Expand")
 
         padding: 0
@@ -89,9 +93,13 @@ Item {
         text: qsTr("Remove element")
         visible: paletteHeader.hidePaletteElementVisible && paletteHeader.editingEnabled
 
-        ToolTip.visible: hovered
-        ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-        ToolTip.text: text
+        onHoveredChanged: {
+            if (hovered) {
+                mscore.tooltip.item = deleteButton;
+                mscore.tooltip.text = deleteButton.text;
+            } else if (mscore.tooltip.item == deleteButton)
+                mscore.tooltip.item = null;
+        }
 
         padding: 4
 
@@ -160,12 +168,20 @@ Item {
         MenuSeparator {}
         MenuItem {
             text: qsTr("Reset Palette")
-            onTriggered: paletteHeader.paletteResetRequested()
+            onTriggered: paletteHeader.paletteWorkspace.resetPalette(paletteHeader.modelIndex)
+        }
+        MenuItem {
+            text: qsTr("Save Palette…")
+            onTriggered: paletteHeader.paletteWorkspace.savePalette(paletteHeader.modelIndex)
+        }
+        MenuItem {
+            text: qsTr("Load Palette…")
+            onTriggered: paletteHeader.paletteWorkspace.loadPalette(paletteHeader.modelIndex)
         }
         MenuSeparator {}
         MenuItem {
-            text: qsTr("Palette Properties")
-            //enabled: paletteHeader.editingEnabled
+            text: qsTr("Palette Properties…")
+            enabled: paletteHeader.editingEnabled
             onTriggered: paletteHeader.editPalettePropertiesRequested()
         }
     }

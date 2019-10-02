@@ -1317,7 +1317,7 @@ Element* Segment::nextElementOfSegment(Segment* s, Element* e, int activeStaff)
                                 (!nextEl || nextEl->staffIdx() != activeStaff)) {
                                nextEl = s->element(++track);
                                }
-                         if (!nextEl)
+                         if (!nextEl || nextEl->staffIdx() != activeStaff)
                                return nullptr;
                          if (nextEl->isChord())
                                return toChord(nextEl)->notes().back();
@@ -1506,7 +1506,9 @@ Element* Segment::nextElement(int activeStaff)
             case ElementType::STAFF_STATE:
             case ElementType::INSTRUMENT_CHANGE:
             case ElementType::STICKING: {
-                  Element* next = nextAnnotation(e);
+                  Element* next = nullptr;
+                  if (e->parent() == this)
+                        next = nextAnnotation(e);
                   if (next)
                         return next;
                   else {
@@ -1575,7 +1577,7 @@ Element* Segment::nextElement(int activeStaff)
                   Segment* nextSegment =  seg->next1enabled();
                   if (!nextSegment) {
                         MeasureBase* mb = measure()->next();
-                        return mb && mb->isBox() ? mb : score()->firstElement();
+                        return mb && mb->isBox() ? mb : score()->lastElement();
                         }
 
                   // check for frame
@@ -1624,7 +1626,9 @@ Element* Segment::prevElement(int activeStaff)
             case ElementType::STAFF_STATE:
             case ElementType::INSTRUMENT_CHANGE:
             case ElementType::STICKING: {
-                  Element* prev = prevAnnotation(e);
+                  Element* prev = nullptr;
+                  if (e->parent() == this)
+                        prev = prevAnnotation(e);
                   if (prev)
                         return prev;
                   if (notChordRestType(this)) {
@@ -1713,7 +1717,7 @@ Element* Segment::prevElement(int activeStaff)
                    Segment* prevSeg = seg->prev1enabled();
                    if (!prevSeg) {
                          MeasureBase* mb = measure()->prev();
-                         return mb && mb->isBox() ? mb : score()->lastElement();
+                         return mb && mb->isBox() ? mb : score()->firstElement();
                          }
 
                    // check for frame
@@ -1728,7 +1732,7 @@ Element* Segment::prevElement(int activeStaff)
                          prev = lastElementOfSegment(prevSeg, activeStaff);
                          }
                    if (!prevSeg)
-                         return score()->lastElement();
+                         return score()->firstElement();
 
                    if (notChordRestType(prevSeg)) {
                          Element* lastEl = lastElementOfSegment(prevSeg, activeStaff);

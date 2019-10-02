@@ -97,6 +97,7 @@ class PaletteTreeModel : public QAbstractItemModel {
             DrawGridRole,
             PaletteExpandedRole,
             PaletteTypeRole,
+            PaletteContentTypeRole,
             CellActiveRole
             };
       Q_ENUM(PaletteTreeModelRoles);
@@ -161,6 +162,7 @@ class PaletteTreeModel : public QAbstractItemModel {
       PalettePanel* findPalettePanel(const QModelIndex& index);
       PaletteCellConstPtr findCell(const QModelIndex&) const;
       PaletteCellPtr findCell(const QModelIndex& index);
+      bool insertPalettePanel(std::unique_ptr<PalettePanel> pp, int row, const QModelIndex& parent = QModelIndex());
 
       void updateCellsState(const Selection&, bool deactivateAll);
       void retranslate();
